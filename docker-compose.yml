@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clout
+      POSTGRES_PASSWORD: clout
+      POSTGRES_DB: clout
+    ports:
+      - "5432:5432"
+    volumes:
+      - clout_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clout -d clout"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://clout:clout@db:5432/clout
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      # Real worker service below actually consumes the queue in this stack,
+      # unlike local dev without Docker — see core/celery_app.py.
+      CELERY_TASK_ALWAYS_EAGER: "false"
+      MEDIA_ROOT: /app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - clout_media_data:/app/media
+
+  celery-worker:
+    build: ./backend
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://clout:clout@db:5432/clout
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_ALWAYS_EAGER: "false"
+      MEDIA_ROOT: /app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - clout_media_data:/app/media
+
+volumes:
+  clout_pg_data:
+  clout_media_data:

@@ -1,0 +1,27 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Env files (never commit real secrets)
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Test artifacts
+.pytest_cache/
+*.sqlite3
+backend/test.db*
+
+# Editors / OS
+.vscode/
+.DS_Store
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
