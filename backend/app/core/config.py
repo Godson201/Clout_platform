@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,19 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     DATABASE_URL: str = "postgresql+asyncpg://clout:clout@localhost:5432/clout"
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        # Managed Postgres providers (Railway, Heroku, Render) inject a plain
+        # postgres:// or postgresql:// URL — the async engine needs the
+        # +asyncpg driver prefix explicitly, so upgrade it here rather than
+        # asking every deploy target to know about our driver choice.
+        if value.startswith("postgres://"):
+            return "postgresql+asyncpg://" + value[len("postgres://") :]
+        if value.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + value[len("postgresql://") :]
+        return value
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
