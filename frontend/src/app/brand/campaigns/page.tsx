@@ -12,8 +12,9 @@ import { listCampaigns } from "@/lib/campaigns-api";
 import type { CampaignStatus } from "@/types/campaign";
 
 function statusVariant(status: CampaignStatus) {
-  if (status === "listed" || status === "active" || status === "completed") return "default" as const;
+  if (status === "listed" || status === "active" || status === "completed") return "success" as const;
   if (status === "cancelled") return "destructive" as const;
+  if (status === "pending_funding") return "warning" as const;
   return "secondary" as const;
 }
 

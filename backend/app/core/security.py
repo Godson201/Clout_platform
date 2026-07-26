@@ -48,16 +48,31 @@ def decode_access_token(token: str) -> dict[str, Any]:
     return payload
 
 
+def _sha256_hex(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def generate_refresh_token() -> tuple[str, str, datetime]:
     """Returns (raw_token_for_client, sha256_hash_for_storage, expires_at)."""
     raw = secrets.token_urlsafe(64)
-    token_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    return raw, token_hash, expires_at
+    return raw, _sha256_hex(raw), expires_at
 
 
 def hash_refresh_token(raw_token: str) -> str:
-    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    return _sha256_hex(raw_token)
+
+
+def generate_secure_token(expire_minutes: int) -> tuple[str, str, datetime]:
+    """Same shape as generate_refresh_token, for the shorter-lived, single-use
+    tokens behind email verification and password reset links."""
+    raw = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expire_minutes)
+    return raw, _sha256_hex(raw), expires_at
+
+
+def hash_secure_token(raw_token: str) -> str:
+    return _sha256_hex(raw_token)
 
 
 def as_aware_utc(value: datetime) -> datetime:

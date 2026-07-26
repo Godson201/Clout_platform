@@ -18,6 +18,11 @@ frontend/out/
 *.sqlite3
 backend/test.db*
 
+# Local dev database and uploaded media (LocalStorageBackend) — never real
+# object storage, and dev.db accumulates real test accounts/emails over time.
+backend/dev.db*
+backend/media/
+
 # Editors / OS
 .vscode/
 .DS_Store

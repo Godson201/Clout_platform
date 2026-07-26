@@ -3,11 +3,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.deps import get_current_user
+from app.models.user import User
 from app.schemas.auth import (
     AccessTokenResponse,
     BrandRegisterRequest,
+    ForgotPasswordRequest,
     InfluencerRegisterRequest,
     LoginRequest,
+    PasswordResetPromptResponse,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
 )
 from app.schemas.user import UserRead
 from app.services import auth as auth_service
@@ -86,3 +92,39 @@ async def logout(
     if clout_refresh_token is not None:
         await auth_service.revoke_refresh_token(db, clout_refresh_token)
     response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    await auth_service.verify_email(db, payload.token)
+    return {"detail": "Email verified"}
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> dict[str, str]:
+    await auth_service.resend_verification_email(db, user)
+    return {"detail": "Verification email sent"}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    # Always returns the same message whether or not the email is registered —
+    # otherwise this endpoint becomes a way to check who has an account.
+    await auth_service.request_password_reset(db, payload.email)
+    return {"detail": "If that email is registered, a password reset link has been sent."}
+
+
+@router.get("/reset-password/{token}", response_model=PasswordResetPromptResponse)
+async def get_reset_password_prompt(token: str, db: AsyncSession = Depends(get_db)) -> PasswordResetPromptResponse:
+    question = await auth_service.get_password_reset_prompt(db, token)
+    return PasswordResetPromptResponse(security_question=question)
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    await auth_service.reset_password(
+        db, raw_token=payload.token, new_password=payload.new_password, security_answer=payload.security_answer
+    )
+    return {"detail": "Password updated"}

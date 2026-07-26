@@ -19,17 +19,34 @@ export interface AccessTokenResponse {
 
 export type VerificationStatus = "unverified" | "pending" | "approved" | "rejected";
 
+export interface VisibilitySettings {
+  about?: boolean;
+  legacy?: boolean;
+  location?: boolean;
+  awards?: boolean;
+  events?: boolean;
+  contact?: boolean;
+  follower_stats?: boolean;
+}
+
 export interface Brand {
   id: string;
   business_name: string;
   sector: string | null;
+  province: string | null;
   location: string | null;
+  admin_sector: string | null;
+  admin_cell: string | null;
+  admin_village: string | null;
+  address_detail: string | null;
   description: string | null;
+  legacy: string | null;
   website: string | null;
   logo_url: string | null;
   contact_phone: string | null;
   contact_email: string | null;
   verification_status: VerificationStatus;
+  visibility_settings: VisibilitySettings;
   created_at: string;
 }
 
@@ -39,14 +56,22 @@ export interface Influencer {
   id: string;
   display_name: string;
   username: string;
+  province: string | null;
   location: string | null;
+  admin_sector: string | null;
+  admin_cell: string | null;
+  admin_village: string | null;
+  address_detail: string | null;
   sector: string | null;
   bio: string | null;
+  legacy: string | null;
+  profile_picture_url: string | null;
   follower_tier: FollowerTier | null;
   estimated_followers: number | null;
   completed_slots_count: number;
   failed_slots_count: number;
   verification_status: VerificationStatus;
+  visibility_settings: VisibilitySettings;
   created_at: string;
 }
 

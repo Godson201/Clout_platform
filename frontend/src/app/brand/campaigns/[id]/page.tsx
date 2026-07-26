@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
@@ -18,14 +19,17 @@ import type { CampaignSlot } from "@/types/campaign";
 import type { Payment } from "@/types/payment";
 
 function slotStatusVariant(status: CampaignSlot["status"]) {
-  if (status === "open") return "secondary" as const;
+  if (status === "completed") return "success" as const;
+  if (status === "partially_completed") return "warning" as const;
   if (status === "cancelled" || status === "failed") return "destructive" as const;
-  return "default" as const;
+  if (status === "open") return "secondary" as const;
+  return "success" as const;
 }
 
 function paymentStatusVariant(status: Payment["status"]) {
-  if (status === "successful") return "default" as const;
+  if (status === "successful") return "success" as const;
   if (status === "failed") return "destructive" as const;
+  if (status === "pending") return "warning" as const;
   return "secondary" as const;
 }
 
@@ -160,7 +164,10 @@ function CampaignDetail({ campaignId }: { campaignId: string }) {
 
           <div className="mt-4 space-y-3">
             {canFund && (
-              <div className="flex flex-wrap items-end gap-2">
+              <div className="premium-card-hover flex flex-wrap items-end gap-3 rounded-[18px] border border-primary/15 bg-linear-to-br from-primary/5 to-brand-teal/5 p-4">
+                <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Smartphone className="size-4" />
+                </span>
                 <div className="space-y-1">
                   <Label htmlFor="fund-phone">MoMo phone number</Label>
                   <Input
@@ -231,12 +238,21 @@ function CampaignDetail({ campaignId }: { campaignId: string }) {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>{slot.target_views.toLocaleString()} views</p>
                 <p>
                   {Number(slot.budget_allocated).toLocaleString()} {campaign.currency}
                 </p>
                 {slot.delivered_pct !== null && <p>Delivered: {Number(slot.delivered_pct).toFixed(0)}%</p>}
+                {slot.influencer_id && (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    render={<Link href={`/messages?with=${slot.influencer_id}`} />}
+                  >
+                    Message influencer
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

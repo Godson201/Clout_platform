@@ -87,3 +87,37 @@ async def register_influencer_token(
         assert patch_resp.status_code == 200, patch_resp.json()
 
     return token
+
+
+async def connected_brand_and_influencer(
+    client, tiny_video_bytes, *, brand_email: str, influencer_email: str, influencer_username: str
+) -> tuple[str, str, str, str]:
+    """Returns (brand_token, brand_id, influencer_token, influencer_id) for a
+    pair that actually has a relationship — the influencer has claimed a slot on
+    one of the brand's campaigns — satisfying the gate messaging/contracts/public
+    profiles share (see app/services/relationships.py).
+    """
+    brand_token, ad_id = await register_brand_with_ready_ad(client, tiny_video_bytes, email=brand_email)
+    create_resp = await client.post(
+        "/api/v1/campaigns",
+        json={
+            "advertisement_id": ad_id,
+            "platforms": ["tiktok"],
+            "target_views": 10_000,
+            "tier": "micro",
+            "slot_count": 1,
+        },
+        headers={"Authorization": f"Bearer {brand_token}"},
+    )
+    campaign_id = create_resp.json()["id"]
+    funded = await fund_and_confirm_campaign(client, brand_token, campaign_id)
+    slot_id = funded["slots"][0]["id"]
+
+    influencer_token = await register_influencer_token(client, email=influencer_email, username=influencer_username)
+    claim_resp = await client.post(f"/api/v1/slots/{slot_id}/claim", headers={"Authorization": f"Bearer {influencer_token}"})
+    assert claim_resp.status_code == 200, claim_resp.json()
+
+    brand_me = await client.get("/api/v1/brands/me", headers={"Authorization": f"Bearer {brand_token}"})
+    influencer_me = await client.get("/api/v1/influencers/me", headers={"Authorization": f"Bearer {influencer_token}"})
+
+    return brand_token, brand_me.json()["id"], influencer_token, influencer_me.json()["id"]

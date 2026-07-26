@@ -83,6 +83,7 @@ async def list_my_slots(
             delivered_pct=slot.delivered_pct,
             recovered_from_slot_id=slot.recovered_from_slot_id,
             recovery_generation=slot.recovery_generation,
+            brand_id=brand.id,
             brand_name=brand.business_name,
             advertisement_title=advertisement.title,
         )

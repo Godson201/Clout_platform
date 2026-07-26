@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     MAX_VIDEO_UPLOAD_MB: int = 200
     MAX_IMAGE_UPLOAD_MB: int = 10
     MAX_AUDIO_UPLOAD_MB: int = 20
+    MAX_DOCUMENT_UPLOAD_MB: int = 20
 
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
@@ -100,6 +101,20 @@ class Settings(BaseSettings):
     REPORT_GENERATOR_MODE: str = "template"
     ANTHROPIC_API_KEY: str | None = None
     ANTHROPIC_MODEL: str = "claude-sonnet-4-5"
+
+    # "mock" (default) never makes a network call — it logs and keeps sent
+    # messages in memory (see app/services/email/console.py), used for local dev
+    # without SMTP configured and for the whole test suite. "smtp" sends real
+    # mail via SMTP_*, mirroring PAYMENT_PROVIDER_MODE/SOCIAL_OAUTH_MODE.
+    EMAIL_MODE: str = "mock"
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 465
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM_EMAIL: str | None = None
+    SMTP_FROM_NAME: str = "CLOUT"
+    EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 60 * 24
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 60
 
 
 @lru_cache

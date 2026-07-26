@@ -8,6 +8,7 @@ from app.models.advertisement import Advertisement  # noqa: F401
 from app.models.advertisement_asset import AdvertisementAsset  # noqa: F401
 from app.models.advertisement_rendition import AdvertisementRendition  # noqa: F401
 from app.models.advertisement_template import AdvertisementTemplate  # noqa: F401
+from app.models.announcement import Announcement  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.brand import Brand  # noqa: F401
 from app.models.campaign import Campaign  # noqa: F401
@@ -15,11 +16,16 @@ from app.models.campaign_report import CampaignReport  # noqa: F401
 from app.models.campaign_slot import CampaignSlot  # noqa: F401
 from app.models.comment import Comment  # noqa: F401
 from app.models.comment_analysis import CommentAnalysis  # noqa: F401
+from app.models.contract import Contract  # noqa: F401
+from app.models.conversation import Conversation  # noqa: F401
+from app.models.email_token import EmailToken  # noqa: F401
 from app.models.fee_config import FeeConfig  # noqa: F401
 from app.models.influencer import Influencer  # noqa: F401
+from app.models.message import Message  # noqa: F401
 from app.models.payment import Payment  # noqa: F401
 from app.models.payout import Payout  # noqa: F401
 from app.models.post_metric_snapshot import PostMetricSnapshot  # noqa: F401
+from app.models.profile_highlight import ProfileHighlight  # noqa: F401
 from app.models.rbac import Permission, Role, role_permissions, user_roles  # noqa: F401
 from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.refund import Refund  # noqa: F401
@@ -36,6 +42,7 @@ __all__ = [
     "AdvertisementAsset",
     "AdvertisementRendition",
     "AdvertisementTemplate",
+    "Announcement",
     "AuditLog",
     "Brand",
     "Campaign",
@@ -43,11 +50,16 @@ __all__ = [
     "CampaignSlot",
     "Comment",
     "CommentAnalysis",
+    "Contract",
+    "Conversation",
+    "EmailToken",
     "FeeConfig",
     "Influencer",
+    "Message",
     "Payment",
     "Payout",
     "PostMetricSnapshot",
+    "ProfileHighlight",
     "Permission",
     "Role",
     "role_permissions",

@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.advertisement_rendition import AdvertisementRendition
 from app.models.enums import AssetType, SocialPlatform
-from app.services.storage import allowed_extensions, generate_storage_key, get_storage_backend
+from app.services.storage import allowed_extensions, generate_storage_key, get_storage_backend, read_with_limit
 
 settings = get_settings()
 
@@ -28,26 +28,6 @@ _EXPECTED_CONTENT_TYPE_PREFIX = {
     AssetType.AUDIO: "audio/",
     AssetType.VOICEOVER: "audio/",
 }
-
-
-async def _read_with_limit(file: UploadFile, max_bytes: int) -> bytes:
-    """Streams the upload in 1MB chunks rather than trusting the client-sent
-    Content-Length, which can be absent or wrong (e.g. chunked transfer encoding).
-    """
-    chunks: list[bytes] = []
-    total = 0
-    while True:
-        chunk = await file.read(1024 * 1024)
-        if not chunk:
-            break
-        total += len(chunk)
-        if total > max_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds the {max_bytes // (1024 * 1024)}MB limit for this asset type",
-            )
-        chunks.append(chunk)
-    return b"".join(chunks)
 
 
 def _validate_upload(asset_type: AssetType, file: UploadFile) -> str:
@@ -74,7 +54,7 @@ async def store_advertisement_asset(
     _validate_upload(asset_type, file)
 
     max_bytes = _MAX_MB_BY_TYPE[asset_type] * 1024 * 1024
-    content = await _read_with_limit(file, max_bytes)
+    content = await read_with_limit(file, max_bytes)
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 

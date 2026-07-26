@@ -14,7 +14,8 @@ import type { SocialAccountStatus } from "@/types/social";
 const PLATFORMS = ["tiktok", "instagram", "facebook", "youtube"] as const;
 
 function statusVariant(status: SocialAccountStatus) {
-  if (status === "active") return "default" as const;
+  if (status === "active") return "success" as const;
+  if (status === "expired") return "warning" as const;
   if (status === "disconnected" || status === "revoked") return "destructive" as const;
   return "secondary" as const;
 }

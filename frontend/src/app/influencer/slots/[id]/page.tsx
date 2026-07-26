@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import { useState } from "react";
@@ -29,14 +30,15 @@ function errorDetail(error: unknown): string | null {
 }
 
 function postStatusVariant(status: SocialPost["status"]) {
-  if (status === "published") return "default" as const;
+  if (status === "published") return "success" as const;
   if (status === "failed" || status === "deleted") return "destructive" as const;
+  if (status === "pending") return "warning" as const;
   return "secondary" as const;
 }
 
 function categoryVariant(category: CommentCategory) {
   if (category === "complaint" || category === "negative") return "destructive" as const;
-  if (category === "positive") return "default" as const;
+  if (category === "positive") return "success" as const;
   return "secondary" as const;
 }
 
@@ -103,7 +105,7 @@ function CreatePostForm({ slotId, platform }: { slotId: string; platform: string
     <div className="space-y-3">
       <div className="space-y-1">
         <Label>Connected {platform} account</Label>
-        <Select value={accountId || undefined} onValueChange={(value) => setAccountId(value ?? "")}>
+        <Select value={accountId} onValueChange={(value) => setAccountId(value ?? "")}>
           <SelectTrigger>
             <SelectValue placeholder="Select an account" />
           </SelectTrigger>
@@ -220,12 +222,15 @@ function SlotDetail({ slotId }: { slotId: string }) {
             <Badge className="capitalize">{slot.status}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p className="capitalize">
             {slot.brand_name} · {slot.platform} · {slot.tier} tier
           </p>
           <p>{slot.target_views.toLocaleString()} views target</p>
           {slot.delivered_pct !== null && <p>Delivered: {Number(slot.delivered_pct).toFixed(0)}%</p>}
+          <Button size="xs" variant="outline" render={<Link href={`/messages?with=${slot.brand_id}`} />}>
+            Message brand
+          </Button>
         </CardContent>
       </Card>
 

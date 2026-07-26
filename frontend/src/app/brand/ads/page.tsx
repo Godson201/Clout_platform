@@ -12,7 +12,7 @@ import { listAdvertisements } from "@/lib/advertisements-api";
 import type { AdvertisementStatus } from "@/types/advertisement";
 
 function statusVariant(status: AdvertisementStatus) {
-  if (status === "ready") return "default" as const;
+  if (status === "ready") return "success" as const;
   if (status === "archived") return "secondary" as const;
   return "outline" as const;
 }

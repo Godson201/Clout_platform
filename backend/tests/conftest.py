@@ -19,6 +19,13 @@ os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "true")
 # Fixed but valid Fernet key — fine for tests, never used outside this process.
 os.environ.setdefault("SOCIAL_TOKEN_ENCRYPTION_KEY", "zHz0jfvz0jz3aRXKz6nZ0J8qgq7z5r1v2yV3wq9F1lE=")
 os.environ.setdefault("SOCIAL_OAUTH_MODE", "mock")
+# Force-set (not just default) because backend/.env sets EMAIL_MODE=smtp for the
+# live dev server — pydantic-settings reads .env directly, so without this the
+# whole suite would try to send real mail through Gmail's SMTP on every
+# registration/password-reset test (slow, and silently swallowed by the
+# best-effort try/except around every send, which is what made this so easy to
+# miss: requests still returned 200, just with no mock email ever recorded).
+os.environ["EMAIL_MODE"] = "mock"
 
 import pytest
 import pytest_asyncio
@@ -35,10 +42,12 @@ from app.seeds.seed import (
     seed_roles_and_permissions,
     seed_view_rates,
 )
+from app.services.email.console import SENT_EMAILS
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def _fresh_database():
+    SENT_EMAILS.clear()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

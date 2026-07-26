@@ -16,8 +16,9 @@ import { getMyInfluencerWallet, listPayouts, requestPayout } from "@/lib/payment
 import type { Payout } from "@/types/payment";
 
 function payoutStatusVariant(status: Payout["status"]) {
-  if (status === "successful") return "default" as const;
+  if (status === "successful") return "success" as const;
   if (status === "failed") return "destructive" as const;
+  if (status === "pending") return "warning" as const;
   return "secondary" as const;
 }
 

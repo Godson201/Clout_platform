@@ -3,6 +3,8 @@ import uuid
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
+from fastapi import HTTPException, UploadFile, status
+
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -96,3 +98,23 @@ def generate_storage_key(advertisement_id: uuid.UUID, asset_type: str, original_
 
 def generate_rendition_key(asset_id: uuid.UUID, platform: str) -> str:
     return f"renditions/{asset_id}/{platform}.mp4"
+
+
+async def read_with_limit(file: UploadFile, max_bytes: int) -> bytes:
+    """Streams an upload in 1MB chunks rather than trusting the client-sent
+    Content-Length, which can be absent or wrong (e.g. chunked transfer encoding).
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds the {max_bytes // (1024 * 1024)}MB limit for this upload",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)

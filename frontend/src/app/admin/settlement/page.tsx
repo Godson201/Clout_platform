@@ -16,7 +16,8 @@ import { listAwaitingSettlement, settleSlot } from "@/lib/admin-api";
 import type { CampaignSlot } from "@/types/campaign";
 
 function slotStatusVariant(status: CampaignSlot["status"]) {
-  if (status === "completed") return "default" as const;
+  if (status === "completed") return "success" as const;
+  if (status === "partially_completed") return "warning" as const;
   if (status === "failed" || status === "cancelled") return "destructive" as const;
   return "secondary" as const;
 }

@@ -212,3 +212,39 @@ class SentimentLabel(str, enum.Enum):
 class ReportGeneratorMode(str, enum.Enum):
     TEMPLATE = "template"
     ANTHROPIC = "anthropic"
+
+
+class EmailTokenPurpose(str, enum.Enum):
+    VERIFY_EMAIL = "verify_email"
+    RESET_PASSWORD = "reset_password"
+
+
+class ProfileOwnerType(str, enum.Enum):
+    BRAND = "brand"
+    INFLUENCER = "influencer"
+
+
+class HighlightCategory(str, enum.Enum):
+    AWARD = "award"
+    EVENT = "event"
+
+
+class AnnouncementAudience(str, enum.Enum):
+    ALL = "all"
+    BRANDS = "brands"
+    INFLUENCERS = "influencers"
+
+
+class MessageType(str, enum.Enum):
+    TEXT = "text"
+    AUDIO = "audio"
+    VIDEO = "video"
+    VOICE_NOTE = "voice_note"
+    DOCUMENT = "document"
+
+
+class ContractStatus(str, enum.Enum):
+    PROPOSED = "proposed"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    CANCELLED = "cancelled"

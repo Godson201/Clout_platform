@@ -36,8 +36,9 @@ function isStillProcessing(ad: AdvertisementDetail | undefined): boolean {
 }
 
 function assetStatusVariant(status: AdvertisementAsset["status"] | RenditionStatus) {
-  if (status === "ready") return "default" as const;
+  if (status === "ready") return "success" as const;
   if (status === "failed") return "destructive" as const;
+  if (status === "processing") return "warning" as const;
   return "secondary" as const;
 }
 

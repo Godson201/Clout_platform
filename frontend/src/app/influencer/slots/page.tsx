@@ -14,7 +14,8 @@ import type { MySlot } from "@/types/campaign";
 const ACTIVE_STATUSES = new Set(["claimed", "published", "tracking"]);
 
 function statusVariant(status: MySlot["status"]) {
-  if (status === "completed") return "default" as const;
+  if (status === "completed") return "success" as const;
+  if (status === "partially_completed") return "warning" as const;
   if (status === "failed" || status === "cancelled") return "destructive" as const;
   return "secondary" as const;
 }

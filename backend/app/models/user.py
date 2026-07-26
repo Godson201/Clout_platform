@@ -25,6 +25,13 @@ class User(UUIDPk, TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Optional (nullable for accounts created before this existed): a fallback
+    # identity check for password reset, used alongside — not instead of —
+    # emailed-link possession. The answer is hashed the same way a password is,
+    # never stored or returned in plaintext.
+    security_question: Mapped[str | None] = mapped_column(String(255), default=None)
+    security_answer_hash: Mapped[str | None] = mapped_column(String(255), default=None)
+
     roles: Mapped[list[Role]] = relationship(secondary=user_roles, back_populates="users")
 
     brand: Mapped["Brand | None"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")

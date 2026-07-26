@@ -85,6 +85,7 @@ export interface MarketplaceSlot extends CampaignSlot {
 }
 
 export interface MySlot extends CampaignSlot {
+  brand_id: string;
   brand_name: string;
   advertisement_title: string;
 }

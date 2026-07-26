@@ -6,6 +6,9 @@ import { useState } from "react";
 
 import { RequireUserType } from "@/components/auth/require-user-type";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { hasLocationData, LocationMap } from "@/components/location/location-map";
+import { RwandaLocationPicker } from "@/components/location/rwanda-location-picker";
+import { ProfilePictureUpload } from "@/components/profile/profile-picture-upload";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { uploadInfluencerPicture } from "@/lib/profile-api";
 import type { Influencer } from "@/types/auth";
 
 const TIERS = ["nano", "micro", "mid", "macro"] as const;
@@ -23,8 +27,9 @@ async function fetchMyInfluencer(): Promise<Influencer> {
 }
 
 function verificationVariant(status: Influencer["verification_status"]) {
-  if (status === "approved") return "default" as const;
+  if (status === "approved") return "success" as const;
   if (status === "rejected") return "destructive" as const;
+  if (status === "pending") return "warning" as const;
   return "secondary" as const;
 }
 
@@ -34,17 +39,28 @@ function InfluencerProfileCard({ influencer }: { influencer: Influencer }) {
   const [form, setForm] = useState({
     display_name: influencer.display_name,
     sector: influencer.sector ?? "",
-    location: influencer.location ?? "",
     bio: influencer.bio ?? "",
     follower_tier: influencer.follower_tier ?? "",
   });
+  const [location, setLocation] = useState({
+    province: influencer.province ?? "",
+    location: influencer.location ?? "",
+    admin_sector: influencer.admin_sector ?? "",
+    admin_cell: influencer.admin_cell ?? "",
+    admin_village: influencer.admin_village ?? "",
+    address_detail: influencer.address_detail ?? "",
+  });
   const [isSaving, setIsSaving] = useState(false);
+
+  async function invalidate() {
+    await queryClient.invalidateQueries({ queryKey: ["influencers", "me"] });
+  }
 
   async function handleSave() {
     setIsSaving(true);
     try {
-      await api.patch("/influencers/me", { ...form, follower_tier: form.follower_tier || null });
-      await queryClient.invalidateQueries({ queryKey: ["influencers", "me"] });
+      await api.patch("/influencers/me", { ...form, follower_tier: form.follower_tier || null, ...location });
+      await invalidate();
       setIsEditing(false);
     } finally {
       setIsSaving(false);
@@ -59,41 +75,69 @@ function InfluencerProfileCard({ influencer }: { influencer: Influencer }) {
           {influencer.verification_status}
         </Badge>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <ProfilePictureUpload
+          currentUrl={influencer.profile_picture_url}
+          initials={influencer.display_name.slice(0, 2).toUpperCase()}
+          label="Photo"
+          onUpload={async (file) => {
+            await uploadInfluencerPicture(file);
+            await invalidate();
+          }}
+        />
         {!isEditing ? (
-          <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Display name</dt>
-              <dd className="font-medium">{influencer.display_name}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Sector</dt>
-              <dd className="font-medium">{influencer.sector ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Location</dt>
-              <dd className="font-medium">{influencer.location ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Bio</dt>
-              <dd className="font-medium">{influencer.bio ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Follower tier</dt>
-              <dd className="font-medium capitalize">{influencer.follower_tier ?? "Not set"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Slot record</dt>
-              <dd className="font-medium">
-                {influencer.completed_slots_count} completed / {influencer.failed_slots_count} failed
-              </dd>
-            </div>
-            <div className="col-span-2">
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                Edit profile
-              </Button>
-            </div>
-          </dl>
+          <>
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Display name</dt>
+                <dd className="font-medium">{influencer.display_name}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Niche</dt>
+                <dd className="font-medium">{influencer.sector ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Location</dt>
+                <dd className="font-medium">
+                  {[
+                    influencer.address_detail,
+                    influencer.admin_village,
+                    influencer.admin_cell,
+                    influencer.admin_sector,
+                    influencer.location,
+                    influencer.province,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Bio</dt>
+                <dd className="font-medium">{influencer.bio ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Follower tier</dt>
+                <dd className="font-medium capitalize">{influencer.follower_tier ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Slot record</dt>
+                <dd className="font-medium">
+                  {influencer.completed_slots_count} completed / {influencer.failed_slots_count} failed
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                  Edit profile
+                </Button>
+              </div>
+            </dl>
+            {hasLocationData(influencer) && (
+              <div>
+                <p className="mb-2 text-xs text-muted-foreground">Shown to brands looking for local creators.</p>
+                <LocationMap fields={influencer} />
+              </div>
+            )}
+          </>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -105,21 +149,17 @@ function InfluencerProfileCard({ influencer }: { influencer: Influencer }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sector</Label>
+                <Label>Niche</Label>
                 <Input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
               </div>
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-              </div>
-              <div className="space-y-2">
+              <div className="col-span-2 space-y-2">
                 <Label>Bio</Label>
                 <Input value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
               </div>
-              <div className="space-y-2">
+              <div className="col-span-2 space-y-2">
                 <Label>Follower tier (self-reported)</Label>
                 <Select
-                  value={form.follower_tier || undefined}
+                  value={form.follower_tier ?? ""}
                   onValueChange={(v) => setForm({ ...form, follower_tier: v ?? "" })}
                 >
                   <SelectTrigger>
@@ -134,6 +174,10 @@ function InfluencerProfileCard({ influencer }: { influencer: Influencer }) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <RwandaLocationPicker value={location} onChange={(patch) => setLocation({ ...location, ...patch })} />
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSave} disabled={isSaving}>

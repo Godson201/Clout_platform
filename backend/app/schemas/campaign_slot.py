@@ -52,5 +52,6 @@ class MarketplaceSlotRead(CampaignSlotRead):
 
 
 class MySlotRead(CampaignSlotRead):
+    brand_id: uuid.UUID
     brand_name: str
     advertisement_title: str
