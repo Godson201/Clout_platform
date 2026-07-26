@@ -38,8 +38,8 @@ services:
       - key: EMAIL_MODE
         value: mock
       - key: CORS_ORIGINS
-        value: '["http://localhost:3000"]'
+        value: '["https://clout-platform-two.vercel.app"]'
       - key: FRONTEND_BASE_URL
-        value: http://localhost:3000
+        value: https://clout-platform-two.vercel.app
       - key: PUBLIC_BASE_URL
         value: https://clout-platform-backend.onrender.com
