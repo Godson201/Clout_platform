@@ -191,7 +191,7 @@ export function DashboardShell({
       <header className="border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold">CLOUT</span>
+            <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
             <Badge variant="outline" className="border-sidebar-border bg-sidebar-accent/20 capitalize text-sidebar-foreground">
               {user?.user_type}
             </Badge>

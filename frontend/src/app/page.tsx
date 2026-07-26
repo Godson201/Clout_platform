@@ -33,7 +33,7 @@ function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-navy/40 text-white backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <span className="text-lg font-semibold tracking-tight">CLOUT</span>
+        <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
         <nav className="hidden items-center gap-6 text-sm text-white/80 md:flex">
           {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href} className="transition-colors hover:text-brand-teal">
@@ -344,8 +344,8 @@ function Footer() {
     <footer className="border-t border-sidebar-border bg-sidebar px-6 py-10 text-sidebar-foreground">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm sm:flex-row">
         <div>
-          <span className="text-base font-semibold">CLOUT</span>
-          <p className="mt-1 text-sidebar-foreground/70">Influencer marketing & ad distribution, built for Rwanda.</p>
+          <img src="/clout-logo.png" alt="CLOUT" className="h-7 w-auto" />
+          <p className="mt-2 text-sidebar-foreground/70">Influencer marketing & ad distribution, built for Rwanda.</p>
         </div>
         <div className="flex items-center gap-5 text-sidebar-foreground/80">
           <a href="#how-it-works" className="hover:text-sidebar-foreground">How it works</a>

@@ -44,7 +44,7 @@ function HeroPanel() {
     <div className="relative isolate hidden flex-1 flex-col justify-between overflow-hidden p-10 text-white lg:flex">
       <PremiumGradientBackground />
       <div className="relative z-10 flex items-center justify-between">
-        <span className="text-lg font-semibold tracking-tight">CLOUT</span>
+        <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
         <ThemeToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />
       </div>
       <div className="relative z-10 animate-fade-in">
