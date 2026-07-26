@@ -36,7 +36,19 @@ services:
       - key: SOCIAL_OAUTH_MODE
         value: mock
       - key: EMAIL_MODE
-        value: mock
+        value: smtp
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: CLOUTPLATFORM
       - key: CORS_ORIGINS
         value: '["https://clout-platform-two.vercel.app"]'
       - key: FRONTEND_BASE_URL
