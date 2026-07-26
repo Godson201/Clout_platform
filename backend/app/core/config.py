@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,15 +15,32 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL")
     @classmethod
     def _normalize_database_url(cls, value: str) -> str:
-        # Managed Postgres providers (Railway, Heroku, Render) inject a plain
-        # postgres:// or postgresql:// URL — the async engine needs the
+        # Managed Postgres providers (Railway, Heroku, Render, Neon) inject a
+        # plain postgres:// or postgresql:// URL — the async engine needs the
         # +asyncpg driver prefix explicitly, so upgrade it here rather than
         # asking every deploy target to know about our driver choice.
         if value.startswith("postgres://"):
-            return "postgresql+asyncpg://" + value[len("postgres://") :]
-        if value.startswith("postgresql://"):
-            return "postgresql+asyncpg://" + value[len("postgresql://") :]
-        return value
+            value = "postgresql+asyncpg://" + value[len("postgres://") :]
+        elif value.startswith("postgresql://"):
+            value = "postgresql+asyncpg://" + value[len("postgresql://") :]
+        elif not value.startswith("postgresql+asyncpg://"):
+            return value
+
+        # These providers also commonly append libpq-style query params
+        # (sslmode, channel_binding) — asyncpg's connect() doesn't accept a
+        # "sslmode" keyword at all (TypeError: unexpected keyword argument),
+        # but its "ssl" keyword accepts the exact same enum strings
+        # ("require", "verify-full", ...), so renaming the key is enough;
+        # the value itself needs no translation. channel_binding has no
+        # asyncpg equivalent and is safe to drop for our connection needs.
+        parts = urlsplit(value)
+        query = dict(parse_qsl(parts.query))
+        sslmode = query.pop("sslmode", None)
+        query.pop("channel_binding", None)
+        if sslmode:
+            query["ssl"] = sslmode
+        new_query = urlencode(query)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
