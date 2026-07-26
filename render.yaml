@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: clout-platform-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "30"
+      - key: DEFAULT_CURRENCY
+        value: RWF
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: MEDIA_ROOT
+        value: /app/media
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "true"
+      - key: PAYMENT_PROVIDER_MODE
+        value: mock
+      - key: SOCIAL_TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: SOCIAL_OAUTH_MODE
+        value: mock
+      - key: EMAIL_MODE
+        value: mock
+      - key: CORS_ORIGINS
+        value: '["http://localhost:3000"]'
+      - key: FRONTEND_BASE_URL
+        value: http://localhost:3000
+      - key: PUBLIC_BASE_URL
+        value: https://clout-platform-backend.onrender.com
