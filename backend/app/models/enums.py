@@ -248,3 +248,13 @@ class ContractStatus(str, enum.Enum):
     ACCEPTED = "accepted"
     DECLINED = "declined"
     CANCELLED = "cancelled"
+
+
+class NotificationType(str, enum.Enum):
+    # Fired to every influencer once a brand's advertisement asset finishes
+    # processing and is playable — lets influencers browse fresh brand creative
+    # without polling the marketplace themselves.
+    NEW_BRAND_MEDIA = "new_brand_media"
+    # Fired to a campaign's brand the moment an influencer's SocialPost for one
+    # of its slots is confirmed published (auto or manual submit-url).
+    INFLUENCER_POST_PUBLISHED = "influencer_post_published"

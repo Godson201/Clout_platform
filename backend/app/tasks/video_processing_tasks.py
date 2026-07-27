@@ -7,9 +7,12 @@ from sqlalchemy import select
 from app.core.celery_app import celery_app
 from app.core.db_sync import SyncSessionLocal
 from app.core.platform_specs import PLATFORM_VIDEO_SPECS
+from app.models.advertisement import Advertisement
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.advertisement_rendition import AdvertisementRendition
-from app.models.enums import AssetStatus, RenditionStatus
+from app.models.brand import Brand
+from app.models.enums import AssetStatus, NotificationType, RenditionStatus
+from app.services.notifications import notify_all_influencers_sync
 from app.services.storage import generate_rendition_key, get_storage_backend
 from app.services.video_processing import VideoProcessingError, probe_video, transcode_for_platform
 
@@ -75,3 +78,22 @@ def process_advertisement_asset(asset_id: str) -> None:
 
         asset.status = AssetStatus.READY if any_ready else AssetStatus.FAILED
         db.commit()
+
+        if any_ready:
+            advertisement = db.get(Advertisement, asset.advertisement_id)
+            brand = db.get(Brand, advertisement.brand_id) if advertisement else None
+            brand_name = brand.business_name if brand else "A brand"
+            notify_all_influencers_sync(
+                db,
+                type_=NotificationType.NEW_BRAND_MEDIA,
+                title=f"{brand_name} shared new video content",
+                body=f'New video added to "{advertisement.title if advertisement else "an advertisement"}" '
+                f"— see what {brand_name} is looking for.",
+                link="/influencer/marketplace",
+                data={
+                    "advertisement_id": str(asset.advertisement_id),
+                    "asset_id": str(asset.id),
+                    "asset_type": "video",
+                    "brand_name": brand_name,
+                },
+            )

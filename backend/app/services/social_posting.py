@@ -14,18 +14,50 @@ from app.models.campaign_slot import CampaignSlot
 from app.models.enums import (
     AssetStatus,
     AssetType,
+    NotificationType,
     PublishMode,
     RenditionStatus,
     SlotStatus,
     SocialAccountStatus,
     SocialPostStatus,
 )
+from app.models.influencer import Influencer
 from app.models.social_account import SocialAccount
 from app.models.social_post import SocialPost
+from app.services.notifications import notify_user
 from app.services.social import get_adapter
 from app.services.storage import get_storage_backend
 
 settings = get_settings()
+
+
+def _format_location(influencer: Influencer) -> str:
+    parts = [influencer.admin_village, influencer.admin_cell, influencer.admin_sector, influencer.location, influencer.province]
+    formatted = ", ".join(p for p in parts if p)
+    return formatted or "Location not shared"
+
+
+async def _notify_brand_of_publish(db: AsyncSession, *, campaign: Campaign, slot: CampaignSlot, post: SocialPost) -> None:
+    influencer = await db.get(Influencer, slot.influencer_id)
+    influencer_name = influencer.display_name if influencer else "An influencer"
+    location = _format_location(influencer) if influencer else "Location not shared"
+    await notify_user(
+        db,
+        user_id=campaign.brand_id,
+        type_=NotificationType.INFLUENCER_POST_PUBLISHED,
+        title=f"{influencer_name} published your ad on {slot.platform.value}",
+        body=f"{influencer_name} just posted your ad on {slot.platform.value}. Location: {location}.",
+        link=f"/brand/campaigns/{campaign.id}",
+        data={
+            "campaign_id": str(campaign.id),
+            "slot_id": str(slot.id),
+            "influencer_id": str(slot.influencer_id) if slot.influencer_id else None,
+            "influencer_name": influencer_name,
+            "location": location,
+            "post_url": post.post_url,
+            "platform": slot.platform.value,
+        },
+    )
 
 
 async def _get_ready_rendition_url(db: AsyncSession, *, campaign: Campaign, slot: CampaignSlot) -> str:
@@ -118,6 +150,10 @@ async def create_post_for_slot(
 
     await db.commit()
     await db.refresh(post)
+
+    if post.status == SocialPostStatus.PUBLISHED:
+        await _notify_brand_of_publish(db, campaign=campaign, slot=slot, post=post)
+
     return post
 
 
@@ -136,4 +172,9 @@ async def submit_manual_post_url(
 
     await db.commit()
     await db.refresh(post)
+
+    campaign_result = await db.execute(select(Campaign).where(Campaign.id == slot.campaign_id))
+    campaign = campaign_result.scalar_one()
+    await _notify_brand_of_publish(db, campaign=campaign, slot=slot, post=post)
+
     return post

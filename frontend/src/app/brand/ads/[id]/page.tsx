@@ -42,6 +42,56 @@ function assetStatusVariant(status: AdvertisementAsset["status"] | RenditionStat
   return "secondary" as const;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDuration(seconds: number): string {
+  const total = Math.round(seconds);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+function assetCaption(asset: AdvertisementAsset): string {
+  const parts: string[] = [];
+  if (asset.width && asset.height) parts.push(`${asset.width}×${asset.height}`);
+  if (asset.duration_seconds) parts.push(formatDuration(asset.duration_seconds));
+  parts.push(formatFileSize(asset.file_size_bytes));
+  return parts.join(" · ");
+}
+
+function AssetPreview({ asset }: { asset: AdvertisementAsset }) {
+  if (asset.status !== "ready" || !asset.url) return null;
+
+  if (asset.asset_type === "video") {
+    return (
+      <video
+        controls
+        preload="metadata"
+        className="aspect-video w-full max-w-md rounded-lg border bg-black object-contain"
+        src={asset.url}
+      />
+    );
+  }
+  if (asset.asset_type === "image" || asset.asset_type === "logo") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={asset.url}
+        alt={asset.original_filename}
+        className="h-auto max-h-64 w-auto max-w-full rounded-lg border object-contain"
+      />
+    );
+  }
+  if (asset.asset_type === "audio" || asset.asset_type === "voiceover") {
+    return <audio controls preload="metadata" className="w-full max-w-md" src={asset.url} />;
+  }
+  return null;
+}
+
 function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; advertisementId: string }) {
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
@@ -65,9 +115,11 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
           </Button>
         </div>
       </CardHeader>
-      {asset.asset_type === "video" && (
-        <CardContent>
-          {asset.error_message && <p className="mb-2 text-sm text-destructive">{asset.error_message}</p>}
+      <CardContent className="space-y-3">
+        {asset.error_message && <p className="text-sm text-destructive">{asset.error_message}</p>}
+        <AssetPreview asset={asset} />
+        {asset.status === "ready" && <p className="text-xs text-muted-foreground">{assetCaption(asset)}</p>}
+        {asset.asset_type === "video" && asset.renditions.length > 0 && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {asset.renditions.map((r) => (
               <div key={r.id} className="rounded-md border p-2 text-xs">
@@ -88,8 +140,8 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
               </div>
             ))}
           </div>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }

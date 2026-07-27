@@ -15,6 +15,7 @@ from app.api.v1 import (
     influencers,
     marketplace,
     messaging,
+    notifications,
     payments,
     payouts,
     profile_highlights,
@@ -46,3 +47,4 @@ api_router.include_router(messaging.router)
 api_router.include_router(contracts.router)
 api_router.include_router(announcements.router)
 api_router.include_router(profile_highlights.router)
+api_router.include_router(notifications.router)

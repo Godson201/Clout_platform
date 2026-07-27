@@ -22,6 +22,7 @@ from app.models.email_token import EmailToken  # noqa: F401
 from app.models.fee_config import FeeConfig  # noqa: F401
 from app.models.influencer import Influencer  # noqa: F401
 from app.models.message import Message  # noqa: F401
+from app.models.notification import Notification  # noqa: F401
 from app.models.payment import Payment  # noqa: F401
 from app.models.payout import Payout  # noqa: F401
 from app.models.post_metric_snapshot import PostMetricSnapshot  # noqa: F401
@@ -56,6 +57,7 @@ __all__ = [
     "FeeConfig",
     "Influencer",
     "Message",
+    "Notification",
     "Payment",
     "Payout",
     "PostMetricSnapshot",

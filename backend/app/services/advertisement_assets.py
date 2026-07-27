@@ -2,16 +2,24 @@ import os
 import uuid
 
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
+from app.models.advertisement import Advertisement
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.advertisement_rendition import AdvertisementRendition
-from app.models.enums import AssetType, SocialPlatform
+from app.models.brand import Brand
+from app.models.enums import AssetStatus, AssetType, NotificationType, SocialPlatform
+from app.services.notifications import notify_all_influencers
 from app.services.storage import allowed_extensions, generate_storage_key, get_storage_backend, read_with_limit
 
 settings = get_settings()
+
+# LOGO is brand housekeeping, not campaign creative — excluded so influencers
+# aren't notified about a brand simply uploading its logo.
+_NOTIFIABLE_ASSET_TYPES = {AssetType.VIDEO, AssetType.IMAGE, AssetType.AUDIO, AssetType.VOICEOVER}
 
 _MAX_MB_BY_TYPE = {
     AssetType.VIDEO: settings.MAX_VIDEO_UPLOAD_MB,
@@ -77,6 +85,10 @@ async def store_advertisement_asset(
         for platform in SocialPlatform:
             db.add(AdvertisementRendition(asset_id=asset.id, platform=platform))
         await db.flush()
+    else:
+        # Non-video assets need no transcode pipeline — they're playable as
+        # uploaded, so they're "ready" the moment the bytes are stored.
+        asset.status = AssetStatus.READY
 
     await db.commit()
     await db.refresh(asset)
@@ -92,8 +104,32 @@ async def store_advertisement_asset(
         # request's event loop — and every other concurrent request — for the
         # duration of the transcode.
         await run_in_threadpool(process_advertisement_asset.delay, str(asset.id))
+    elif asset_type in _NOTIFIABLE_ASSET_TYPES:
+        await _notify_influencers_of_new_media(db, advertisement_id=advertisement_id, asset=asset)
 
     return asset
+
+
+async def _notify_influencers_of_new_media(
+    db: AsyncSession, *, advertisement_id: uuid.UUID, asset: AdvertisementAsset
+) -> None:
+    advertisement = await db.get(Advertisement, advertisement_id)
+    brand = await db.get(Brand, advertisement.brand_id) if advertisement else None
+    brand_name = brand.business_name if brand else "A brand"
+    await notify_all_influencers(
+        db,
+        type_=NotificationType.NEW_BRAND_MEDIA,
+        title=f"{brand_name} shared new {asset.asset_type.value} content",
+        body=f'New {asset.asset_type.value} added to "{advertisement.title if advertisement else "an advertisement"}" '
+        f"— see what {brand_name} is looking for.",
+        link="/influencer/marketplace",
+        data={
+            "advertisement_id": str(advertisement_id),
+            "asset_id": str(asset.id),
+            "asset_type": asset.asset_type.value,
+            "brand_name": brand_name,
+        },
+    )
 
 
 def delete_advertisement_asset(asset: AdvertisementAsset) -> None:

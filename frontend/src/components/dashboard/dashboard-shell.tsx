@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Bell, FileSignature, LogOut, MessageCircle, Search, Settings } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, FileSignature, LogOut, MapPin, MessageCircle, Search, Settings, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,7 +24,9 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { listAnnouncements } from "@/lib/announcements-api";
 import { logout as logoutRequest, resendVerificationEmail } from "@/lib/auth-api";
 import { listConversations } from "@/lib/messaging-api";
+import { listNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/notifications-api";
 import { useAuthStore } from "@/store/auth-store";
+import type { Notification } from "@/types/notification";
 
 function initials(email: string) {
   return email.slice(0, 2).toUpperCase();
@@ -113,13 +115,41 @@ function SearchBar() {
   );
 }
 
-function NotificationCenter({ unreadCount }: { unreadCount: number }) {
+function NotificationIcon({ type }: { type: Notification["type"] }) {
+  if (type === "influencer_post_published") return <MapPin className="size-4 text-brand-teal" />;
+  return <Sparkles className="size-4 text-brand-teal" />;
+}
+
+function NotificationCenter({ messageUnreadCount }: { messageUnreadCount: number }) {
+  const queryClient = useQueryClient();
+
+  const { data: notifications } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: listNotifications,
+    refetchInterval: 20_000,
+  });
   const { data: announcements } = useQuery({
     queryKey: ["announcements", "notification-center"],
     queryFn: listAnnouncements,
     refetchInterval: 60_000,
   });
-  const latest = announcements?.slice(0, 4) ?? [];
+
+  const latestNotifications = notifications?.slice(0, 5) ?? [];
+  const latestAnnouncements = announcements?.slice(0, 3) ?? [];
+  const notifUnreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
+  const totalUnreadCount = messageUnreadCount + notifUnreadCount;
+
+  async function handleOpenNotification(n: Notification) {
+    if (!n.is_read) {
+      await markNotificationRead(n.id);
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  }
+
+  async function handleMarkAllRead() {
+    await markAllNotificationsRead();
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  }
 
   return (
     <DropdownMenu>
@@ -129,9 +159,9 @@ function NotificationCenter({ unreadCount }: { unreadCount: number }) {
             <span className="flex size-8 items-center justify-center rounded-lg border border-white/15 bg-transparent text-sidebar-foreground transition-colors hover:bg-white/10">
               <Bell className="size-4" />
             </span>
-            {unreadCount > 0 && (
+            {totalUnreadCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
               </span>
             )}
           </button>
@@ -139,10 +169,43 @@ function NotificationCenter({ unreadCount }: { unreadCount: number }) {
       />
       <DropdownMenuContent align="end" sideOffset={8} className="w-80">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <div className="flex items-center justify-between px-1.5">
+            <DropdownMenuLabel className="px-0">Notifications</DropdownMenuLabel>
+            {notifUnreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
           <DropdownMenuSeparator />
-          {latest.length === 0 && <p className="px-1.5 py-2 text-sm text-muted-foreground">Nothing new right now.</p>}
-          {latest.map((a) => (
+          {latestNotifications.length === 0 && (
+            <p className="px-1.5 py-2 text-sm text-muted-foreground">Nothing new right now.</p>
+          )}
+          {latestNotifications.map((n) => (
+            <DropdownMenuItem
+              key={n.id}
+              render={<Link href={n.link ?? "#"} />}
+              onClick={() => handleOpenNotification(n)}
+              className="flex-col items-start gap-0.5"
+            >
+              <span className="flex w-full items-center gap-1.5">
+                <NotificationIcon type={n.type} />
+                <span className="text-sm font-medium">{n.title}</span>
+                {!n.is_read && <span className="ml-auto size-1.5 shrink-0 rounded-full bg-destructive" />}
+              </span>
+              <span className="line-clamp-2 text-xs text-muted-foreground">{n.body}</span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="px-1.5">Announcements</DropdownMenuLabel>
+          {latestAnnouncements.length === 0 && (
+            <p className="px-1.5 py-2 text-sm text-muted-foreground">No announcements right now.</p>
+          )}
+          {latestAnnouncements.map((a) => (
             <DropdownMenuItem key={a.id} render={<Link href="/announcements" />} className="flex-col items-start gap-0.5">
               <span className="text-sm font-medium">{a.title}</span>
               <span className="line-clamp-2 text-xs text-muted-foreground">{a.body}</span>
@@ -215,7 +278,7 @@ export function DashboardShell({
                 />
               </>
             )}
-            <NotificationCenter unreadCount={unreadCount} />
+            <NotificationCenter messageUnreadCount={unreadCount} />
             <ThemeToggle className="border-white/15 bg-transparent text-sidebar-foreground hover:bg-white/10" />
             <DropdownMenu>
               <DropdownMenuTrigger
