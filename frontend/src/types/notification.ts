@@ -1,4 +1,4 @@
-export type NotificationType = "new_brand_media" | "influencer_post_published";
+export type NotificationType = "new_brand_media" | "influencer_post_published" | "slot_claimed" | "payment_confirmed";
 
 export interface Notification {
   id: string;

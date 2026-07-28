@@ -7,11 +7,12 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.campaign import Campaign
-from app.models.enums import CampaignStatus, PaymentStatus, TransactionType, WalletOwnerType
+from app.models.enums import CampaignStatus, NotificationType, PaymentStatus, TransactionType, WalletOwnerType
 from app.models.payment import Payment
 from app.services.audit import write_audit_log
 from app.services.campaign_slots import create_slots_for_campaign
 from app.services.ledger import get_or_create_wallet, get_wallet, record_transaction
+from app.services.notifications import notify_user
 from app.services.payments import get_active_provider, get_payment_client
 
 
@@ -129,6 +130,16 @@ async def confirm_campaign_funding(db: AsyncSession, *, payment: Payment) -> Pay
         entity_type="campaign",
         entity_id=campaign.id,
         after={"payment_id": str(payment.id), "amount": str(payment.amount)},
+    )
+
+    await notify_user(
+        db,
+        user_id=campaign.brand_id,
+        type_=NotificationType.PAYMENT_CONFIRMED,
+        title=f"Payment of {campaign.currency} {payment.amount:,.0f} successful",
+        body="Your campaign is now funded and listed for influencers to claim.",
+        link=f"/brand/campaigns/{campaign.id}",
+        data={"campaign_id": str(campaign.id), "payment_id": str(payment.id), "amount": str(payment.amount)},
     )
 
     await db.commit()

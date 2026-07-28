@@ -10,9 +10,11 @@ from app.models.brand import Brand
 from app.models.enums import WalletOwnerType
 from app.models.user import User
 from app.schemas.brand import BrandRead, BrandUpdate
+from app.schemas.brand_dashboard import BrandDashboardSummaryRead, DailyViewsRead, TopCampaignRead
 from app.schemas.public_profile import PublicBrandProfile
 from app.schemas.wallet import WalletRead
 from app.services.audit import write_audit_log
+from app.services.brand_dashboard import compute_brand_dashboard_summary
 from app.services.ledger import get_wallet
 from app.services.profile_pictures import store_profile_picture
 from app.services.public_profiles import build_public_brand_profile
@@ -75,6 +77,41 @@ async def upload_my_logo(
 async def get_my_wallet(user: User = Depends(require_brand), db: AsyncSession = Depends(get_db)) -> WalletRead:
     wallet = await get_wallet(db, owner_type=WalletOwnerType.BRAND, owner_id=user.id)
     return WalletRead.model_validate(wallet)
+
+
+@router.get("/me/dashboard-summary", response_model=BrandDashboardSummaryRead)
+async def get_my_dashboard_summary(
+    user: User = Depends(require_brand), db: AsyncSession = Depends(get_db)
+) -> BrandDashboardSummaryRead:
+    """Every figure is aggregated straight from tracked campaign/slot/post/metric/
+    payment data — nothing estimated or fabricated, same principle as the
+    per-campaign analytics endpoint."""
+    summary = await compute_brand_dashboard_summary(db, brand_id=user.id)
+    return BrandDashboardSummaryRead(
+        total_campaigns=summary.total_campaigns,
+        total_campaigns_mom_pct=summary.total_campaigns_mom_pct,
+        total_views=summary.total_views,
+        total_views_mom_pct=summary.total_views_mom_pct,
+        total_engagement=summary.total_engagement,
+        total_engagement_mom_pct=summary.total_engagement_mom_pct,
+        total_spent=summary.total_spent,
+        total_spent_mom_pct=summary.total_spent_mom_pct,
+        currency=summary.currency,
+        views_over_time=[DailyViewsRead(day=d.day, views=d.views) for d in summary.views_over_time],
+        views_by_platform=summary.views_by_platform,
+        top_campaigns=[
+            TopCampaignRead(
+                campaign_id=c.campaign_id,
+                title=c.title,
+                platforms=c.platforms,
+                influencer_avatars=c.influencer_avatars,
+                total_views=c.total_views,
+                progress_pct=c.progress_pct,
+                status=c.status,
+            )
+            for c in summary.top_campaigns
+        ],
+    )
 
 
 @router.get("/{brand_id}/public", response_model=PublicBrandProfile)

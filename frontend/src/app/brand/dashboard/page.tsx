@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { RequireUserType } from "@/components/auth/require-user-type";
+import { BrandOverviewStats } from "@/components/dashboard/brand-overview-stats";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { hasLocationData, LocationMap } from "@/components/location/location-map";
 import { RwandaLocationPicker } from "@/components/location/rwanda-location-picker";
@@ -164,58 +165,61 @@ function BrandOverview() {
   if (error || !brand) return <p className="text-sm text-destructive">Could not load your brand profile.</p>;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <BrandProfileCard brand={brand} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Brand Toolkit</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Build short-form ads from templates and export them for TikTok, Instagram, Facebook, and YouTube.
-          </p>
-          <div className="flex gap-2">
-            <Button size="sm" render={<Link href="/brand/toolkit" />}>
-              Create an ad
+    <div className="space-y-6">
+      <BrandOverviewStats />
+      <div className="grid gap-6 md:grid-cols-2">
+        <BrandProfileCard brand={brand} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Brand Toolkit</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Build short-form ads from templates and export them for TikTok, Instagram, Facebook, and YouTube.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" render={<Link href="/brand/toolkit" />}>
+                Create an ad
+              </Button>
+              <Button size="sm" variant="outline" render={<Link href="/brand/ads" />}>
+                Advertisement library
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Campaigns</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Turn a ready advertisement into a priced campaign, pay for it via MTN MoMo, and distribute it through
+              matched influencers once escrow is funded.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" render={<Link href="/brand/campaigns/new" />}>
+                Create a campaign
+              </Button>
+              <Button size="sm" variant="outline" render={<Link href="/brand/campaigns" />}>
+                View campaigns
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Connected accounts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Optionally connect your own TikTok, Instagram, Facebook, or YouTube account.
+            </p>
+            <Button size="sm" variant="outline" render={<Link href="/social-accounts" />}>
+              Manage accounts
             </Button>
-            <Button size="sm" variant="outline" render={<Link href="/brand/ads" />}>
-              Advertisement library
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Campaigns</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Turn a ready advertisement into a priced campaign, pay for it via MTN MoMo, and distribute it through
-            matched influencers once escrow is funded.
-          </p>
-          <div className="flex gap-2">
-            <Button size="sm" render={<Link href="/brand/campaigns/new" />}>
-              Create a campaign
-            </Button>
-            <Button size="sm" variant="outline" render={<Link href="/brand/campaigns" />}>
-              View campaigns
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Connected accounts</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Optionally connect your own TikTok, Instagram, Facebook, or YouTube account.
-          </p>
-          <Button size="sm" variant="outline" render={<Link href="/social-accounts" />}>
-            Manage accounts
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

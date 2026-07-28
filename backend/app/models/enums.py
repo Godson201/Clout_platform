@@ -269,3 +269,7 @@ class NotificationType(str, enum.Enum):
     # Fired to a campaign's brand the moment an influencer's SocialPost for one
     # of its slots is confirmed published (auto or manual submit-url).
     INFLUENCER_POST_PUBLISHED = "influencer_post_published"
+    # Fired to a campaign's brand the moment an influencer claims one of its slots.
+    SLOT_CLAIMED = "slot_claimed"
+    # Fired to a campaign's brand once its MoMo funding payment is confirmed.
+    PAYMENT_CONFIRMED = "payment_confirmed"

@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.campaign import Campaign
 from app.models.campaign_slot import CampaignSlot
-from app.models.enums import ACTIVE_SLOT_STATUSES, CampaignStatus, SlotStatus
+from app.models.enums import ACTIVE_SLOT_STATUSES, CampaignStatus, NotificationType, SlotStatus
+from app.models.influencer import Influencer
+from app.services.notifications import notify_user
 
 MAX_ACTIVE_SLOTS_PER_INFLUENCER = 5
 
@@ -71,4 +73,19 @@ async def claim_slot(db: AsyncSession, *, slot_id: uuid.UUID, influencer_id: uui
     fresh = await db.execute(
         select(CampaignSlot).where(CampaignSlot.id == slot_id).execution_options(populate_existing=True)
     )
-    return fresh.scalar_one()
+    slot = fresh.scalar_one()
+
+    campaign = await db.get(Campaign, slot.campaign_id)
+    influencer = await db.get(Influencer, influencer_id)
+    if campaign is not None and influencer is not None:
+        await notify_user(
+            db,
+            user_id=campaign.brand_id,
+            type_=NotificationType.SLOT_CLAIMED,
+            title=f"{influencer.display_name} claimed a slot",
+            body=f"{influencer.display_name} (@{influencer.username}) claimed a {slot.platform.value} slot on your campaign.",
+            link=f"/brand/campaigns/{campaign.id}",
+            data={"campaign_id": str(campaign.id), "slot_id": str(slot.id), "influencer_id": str(influencer.id)},
+        )
+
+    return slot

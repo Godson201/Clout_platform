@@ -1,14 +1,35 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, FileSignature, LogOut, MapPin, MessageCircle, Search, Settings, Sparkles } from "lucide-react";
+import {
+  Bell,
+  Clapperboard,
+  FileSignature,
+  Gauge,
+  ImageIcon,
+  ListChecks,
+  LogOut,
+  Megaphone,
+  MessageCircle,
+  Menu,
+  PlusCircle,
+  Scale,
+  Search,
+  Settings,
+  Share2,
+  Sparkles,
+  Store,
+  Wallet as WalletIcon,
+  Wand2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BackButton } from "@/components/ui/back-button";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,8 +46,56 @@ import { listAnnouncements } from "@/lib/announcements-api";
 import { logout as logoutRequest, resendVerificationEmail } from "@/lib/auth-api";
 import { listConversations } from "@/lib/messaging-api";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/notifications-api";
+import { getMyBrandWallet, getMyInfluencerWallet } from "@/lib/payments-api";
 import { useAuthStore } from "@/store/auth-store";
 import type { Notification } from "@/types/notification";
+import type { UserType } from "@/types/auth";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV_ITEMS: Record<UserType, NavItem[]> = {
+  brand: [
+    { href: "/brand/dashboard", label: "Overview", icon: Gauge },
+    { href: "/brand/campaigns", label: "Campaigns", icon: Megaphone },
+    { href: "/brand/campaigns/new", label: "Create Campaign", icon: PlusCircle },
+    { href: "/brand/toolkit", label: "Ad Toolkit", icon: Wand2 },
+    { href: "/brand/ads", label: "Ads Library", icon: Clapperboard },
+    { href: "/messages", label: "Messages", icon: MessageCircle },
+    { href: "/contracts", label: "Contracts", icon: FileSignature },
+    { href: "/social-accounts", label: "Connected Accounts", icon: Share2 },
+    { href: "/announcements", label: "Announcements", icon: Sparkles },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  influencer: [
+    { href: "/influencer/dashboard", label: "Overview", icon: Gauge },
+    { href: "/influencer/marketplace", label: "Marketplace", icon: Store },
+    { href: "/influencer/slots", label: "My Slots", icon: ListChecks },
+    { href: "/influencer/earnings", label: "Earnings", icon: WalletIcon },
+    { href: "/messages", label: "Messages", icon: MessageCircle },
+    { href: "/contracts", label: "Contracts", icon: FileSignature },
+    { href: "/social-accounts", label: "Connected Accounts", icon: Share2 },
+    { href: "/announcements", label: "Announcements", icon: Sparkles },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  admin: [
+    { href: "/admin/dashboard", label: "Overview", icon: Gauge },
+    { href: "/admin/media-review", label: "Media Review", icon: ImageIcon },
+    { href: "/admin/contracts", label: "Contracts", icon: FileSignature },
+    { href: "/admin/settlement", label: "Settlement", icon: Scale },
+    { href: "/announcements", label: "Announcements", icon: Sparkles },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+};
+
+const DASHBOARD_LABEL: Record<UserType, string> = {
+  brand: "Brand Dashboard",
+  influencer: "Influencer Dashboard",
+  admin: "Admin Dashboard",
+};
 
 function initials(email: string) {
   return email.slice(0, 2).toUpperCase();
@@ -58,37 +127,81 @@ function UnverifiedEmailBanner() {
   );
 }
 
-function NavIconLink({
-  href,
-  icon: Icon,
-  label,
-  badgeCount,
-  isActive,
+function AccountBalanceCard({ userType }: { userType: UserType }) {
+  const isBrand = userType === "brand";
+  const isInfluencer = userType === "influencer";
+
+  const { data: wallet } = useQuery({
+    queryKey: ["wallet", userType],
+    queryFn: isBrand ? getMyBrandWallet : getMyInfluencerWallet,
+    enabled: isBrand || isInfluencer,
+  });
+
+  if (!isBrand && !isInfluencer) return null;
+
+  return (
+    <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3">
+      <p className="text-xs text-sidebar-foreground/70">Account Balance</p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="truncate text-sm font-semibold text-sidebar-foreground">
+          {wallet ? `${wallet.currency} ${Number(wallet.balance).toLocaleString()}` : "—"}
+        </p>
+        <Button
+          size="icon-xs"
+          className="shrink-0 rounded-full"
+          render={<Link href={isBrand ? "/brand/campaigns/new" : "/influencer/earnings"} title="View details" />}
+        >
+          <PlusCircle className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SidebarNav({ items, pathname, onNavigate }: { items: NavItem[]; pathname: string | null; onNavigate?: () => void }) {
+  return (
+    <nav className="flex-1 space-y-0.5 px-3">
+      {items.map(({ href, label, icon: Icon }) => {
+        const isActive = pathname === href || (href !== "/" && pathname?.startsWith(href + "/")) || false;
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            className={
+              isActive
+                ? "flex items-center gap-2.5 rounded-lg bg-sidebar-primary px-3 py-2 text-sm font-medium text-sidebar-primary-foreground transition-colors"
+                : "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            }
+          >
+            <Icon className="size-4 shrink-0" />
+            <span className="truncate">{label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SidebarContent({
+  userType,
+  pathname,
+  onNavigate,
 }: {
-  href: string;
-  icon: typeof MessageCircle;
-  label: string;
-  badgeCount?: number;
-  isActive: boolean;
+  userType: UserType;
+  pathname: string | null;
+  onNavigate?: () => void;
 }) {
   return (
-    <Button
-      size="icon-sm"
-      variant="outline"
-      className={
-        isActive
-          ? "relative border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-          : "relative border-white/15 bg-transparent text-sidebar-foreground hover:bg-white/10"
-      }
-      render={<Link href={href} title={label} />}
-    >
-      <Icon className="size-4" />
-      {!!badgeCount && (
-        <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-          {badgeCount > 9 ? "9+" : badgeCount}
-        </span>
-      )}
-    </Button>
+    <>
+      <div className="flex items-center px-5 py-5">
+        <img src="/clout-logo.png" alt="CLOUT" className="h-7 w-auto" />
+      </div>
+      <SidebarNav items={NAV_ITEMS[userType]} pathname={pathname} onNavigate={onNavigate} />
+      <div className="p-3">
+        <AccountBalanceCard userType={userType} />
+      </div>
+    </>
   );
 }
 
@@ -104,20 +217,20 @@ function SearchBar() {
         if (query.trim()) router.push(`/messages?q=${encodeURIComponent(query.trim())}`);
       }}
     >
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-white/50" />
+      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search conversations..."
-        className="h-8 w-48 border-white/15 bg-white/5 pl-8 text-white placeholder:text-white/50 focus-visible:border-sidebar-primary lg:w-64"
+        className="h-8 w-48 pl-8 lg:w-64"
       />
     </form>
   );
 }
 
 function NotificationIcon({ type }: { type: Notification["type"] }) {
-  if (type === "influencer_post_published") return <MapPin className="size-4 text-brand-teal" />;
-  return <Sparkles className="size-4 text-brand-teal" />;
+  if (type === "influencer_post_published") return <Megaphone className="size-4 text-primary" />;
+  return <Sparkles className="size-4 text-primary" />;
 }
 
 function NotificationCenter({ messageUnreadCount }: { messageUnreadCount: number }) {
@@ -156,7 +269,7 @@ function NotificationCenter({ messageUnreadCount }: { messageUnreadCount: number
       <DropdownMenuTrigger
         render={
           <button type="button" className="relative outline-none">
-            <span className="flex size-8 items-center justify-center rounded-lg border border-white/15 bg-transparent text-sidebar-foreground transition-colors hover:bg-white/10">
+            <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-transparent text-foreground transition-colors hover:bg-muted">
               <Bell className="size-4" />
             </span>
             {totalUnreadCount > 0 && (
@@ -231,6 +344,7 @@ export function DashboardShell({
   const user = useAuthStore((s) => s.user);
   const clearSession = useAuthStore((s) => s.clearSession);
   const canMessage = user?.user_type === "brand" || user?.user_type === "influencer";
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", "unread-badge"],
@@ -250,44 +364,56 @@ export function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
-            <Badge variant="outline" className="border-sidebar-border bg-sidebar-accent/20 capitalize text-sidebar-foreground">
-              {user?.user_type}
-            </Badge>
+    <div className="flex min-h-screen bg-background">
+      {user && (
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+          <SidebarContent userType={user.user_type} pathname={pathname} />
+        </aside>
+      )}
+
+      {mobileNavOpen && user && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 flex h-full w-72 flex-col bg-sidebar shadow-xl">
+            <div className="flex items-center justify-end px-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-lg p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <SidebarContent userType={user.user_type} pathname={pathname} onNavigate={() => setMobileNavOpen(false)} />
+          </aside>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="rounded-lg p-1.5 text-foreground hover:bg-muted lg:hidden"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="size-5" />
+            </button>
+            <span className="truncate text-sm font-medium text-muted-foreground">
+              {user ? DASHBOARD_LABEL[user.user_type] : "CLOUT"}
+            </span>
           </div>
-          {canMessage && <SearchBar />}
           <div className="flex items-center gap-2">
-            {canMessage && (
-              <>
-                <NavIconLink
-                  href="/messages"
-                  icon={MessageCircle}
-                  label="Messages"
-                  badgeCount={unreadCount}
-                  isActive={pathname?.startsWith("/messages") ?? false}
-                />
-                <NavIconLink
-                  href="/contracts"
-                  icon={FileSignature}
-                  label="Contracts"
-                  isActive={pathname?.startsWith("/contracts") ?? false}
-                />
-              </>
-            )}
+            {canMessage && <SearchBar />}
             <NotificationCenter messageUnreadCount={unreadCount} />
-            <ThemeToggle className="border-white/15 bg-transparent text-sidebar-foreground hover:bg-white/10" />
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <button type="button" className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <button type="button" className="ml-1 flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Avatar>
-                      <AvatarFallback className="bg-sidebar-accent/20 text-sidebar-foreground">
-                        {user ? initials(user.email) : "?"}
-                      </AvatarFallback>
+                      <AvatarFallback>{user ? initials(user.email) : "?"}</AvatarFallback>
                     </Avatar>
                   </button>
                 }
@@ -307,16 +433,16 @@ export function DashboardShell({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-4">
-          <BackButton fallbackHref={user ? `/${user.user_type}/dashboard` : "/"} className="-ml-2" />
-        </div>
-        {user && !user.is_verified && <UnverifiedEmailBanner />}
-        <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
-        <div className="animate-fade-in">{children}</div>
-      </main>
+        </header>
+        <main className="flex-1 px-4 py-6 sm:px-6">
+          <div className="mb-4">
+            <BackButton fallbackHref={user ? `/${user.user_type}/dashboard` : "/"} className="-ml-2" />
+          </div>
+          {user && !user.is_verified && <UnverifiedEmailBanner />}
+          <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
+          <div className="animate-fade-in">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
