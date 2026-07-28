@@ -1,4 +1,5 @@
 from tests.factories import connected_brand_and_influencer, register_brand_with_ready_ad, register_influencer_token
+from tests.test_admin_flow import _make_admin_token
 
 
 class TestContracts:
@@ -124,3 +125,31 @@ class TestContracts:
         assert len(brand_list.json()) == 1
         assert len(inf_list.json()) == 1
         assert brand_list.json()[0]["id"] == inf_list.json()[0]["id"]
+
+
+class TestAdminContractOversight:
+    async def test_admin_can_view_all_contracts_read_only(self, client, tiny_video_bytes):
+        brand_token, _, inf_token, inf_id = await connected_brand_and_influencer(
+            client, tiny_video_bytes,
+            brand_email="admin-oversight-brand@example.com", influencer_email="admin-oversight-inf@example.com",
+            influencer_username="adminoversightinf",
+        )
+        propose_resp = await client.post(
+            "/api/v1/contracts",
+            json={"counterpart_id": inf_id, "title": "Oversight deal", "terms_text": "Terms visible to admin only."},
+            headers={"Authorization": f"Bearer {brand_token}"},
+        )
+        contract_id = propose_resp.json()["id"]
+
+        admin_token = await _make_admin_token(email="contract-oversight-admin@clout.local")
+        resp = await client.get("/api/v1/admin/contracts", headers={"Authorization": f"Bearer {admin_token}"})
+        assert resp.status_code == 200
+        contract = next(c for c in resp.json() if c["id"] == contract_id)
+        assert contract["title"] == "Oversight deal"
+        assert contract["brand_name"]
+        assert contract["influencer_username"] == "adminoversightinf"
+
+    async def test_non_admin_cannot_view_admin_contracts_list(self, client, tiny_video_bytes):
+        brand_token, _ = await register_brand_with_ready_ad(client, tiny_video_bytes, email="not-admin-c@example.com")
+        resp = await client.get("/api/v1/admin/contracts", headers={"Authorization": f"Bearer {brand_token}"})
+        assert resp.status_code == 403

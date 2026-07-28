@@ -168,6 +168,33 @@ export default function AdminDashboardPage() {
               </Button>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Media review</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Brand-uploaded video, photo, and audio waits for approval here before it's broadcast to every
+                influencer.
+              </p>
+              <Button size="sm" render={<Link href="/admin/media-review" />}>
+                Review queue
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Contracts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Read-only oversight of every digital agreement between brands and influencers.
+              </p>
+              <Button size="sm" render={<Link href="/admin/contracts" />}>
+                View contracts
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </DashboardShell>
     </RequireUserType>

@@ -12,6 +12,7 @@ export interface AdvertisementTemplate {
 export type AdvertisementStatus = "draft" | "ready" | "archived";
 export type AssetType = "video" | "image" | "logo" | "audio" | "voiceover";
 export type AssetStatus = "uploaded" | "processing" | "ready" | "failed";
+export type AssetModerationStatus = "pending" | "approved" | "rejected";
 export type RenditionStatus = "pending" | "processing" | "ready" | "failed";
 export type SocialPlatform = "tiktok" | "instagram" | "facebook" | "youtube";
 
@@ -40,6 +41,14 @@ export interface AdvertisementAsset {
   created_at: string;
   url: string | null;
   renditions: AdvertisementRendition[];
+  moderation_status: AssetModerationStatus;
+  moderation_note: string | null;
+}
+
+export interface AssetModerationQueueItem extends AdvertisementAsset {
+  advertisement_id: string;
+  advertisement_title: string;
+  brand_name: string;
 }
 
 export interface Advertisement {

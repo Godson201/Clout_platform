@@ -1,5 +1,12 @@
 import { api } from "@/lib/api";
-import type { Advertisement, AdvertisementDetail, AdvertisementTemplate, AssetType } from "@/types/advertisement";
+import type {
+  Advertisement,
+  AdvertisementAsset,
+  AdvertisementDetail,
+  AdvertisementTemplate,
+  AssetModerationQueueItem,
+  AssetType,
+} from "@/types/advertisement";
 import type { Page } from "@/types/auth";
 
 export async function listTemplates(): Promise<AdvertisementTemplate[]> {
@@ -67,4 +74,19 @@ export async function uploadAdvertisementAsset(
 
 export async function deleteAdvertisementAsset(advertisementId: string, assetId: string): Promise<void> {
   await api.delete(`/advertisements/${advertisementId}/assets/${assetId}`);
+}
+
+export async function listAssetsPendingModeration(): Promise<AssetModerationQueueItem[]> {
+  const { data } = await api.get<AssetModerationQueueItem[]>("/admin/asset-moderation");
+  return data;
+}
+
+export async function approveAssetModeration(assetId: string): Promise<AdvertisementAsset> {
+  const { data } = await api.post<AdvertisementAsset>(`/admin/asset-moderation/${assetId}/approve`);
+  return data;
+}
+
+export async function rejectAssetModeration(assetId: string, reason: string): Promise<AdvertisementAsset> {
+  const { data } = await api.post<AdvertisementAsset>(`/admin/asset-moderation/${assetId}/reject`, { reason });
+  return data;
 }

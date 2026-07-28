@@ -3,6 +3,8 @@ from fastapi import APIRouter
 from app.api.v1 import (
     admin,
     admin_announcements,
+    admin_asset_moderation,
+    admin_contracts,
     admin_pricing,
     admin_settlement,
     admin_templates,
@@ -35,6 +37,8 @@ api_router.include_router(admin_templates.router)
 api_router.include_router(admin_pricing.router)
 api_router.include_router(admin_settlement.router)
 api_router.include_router(admin_announcements.router)
+api_router.include_router(admin_asset_moderation.router)
+api_router.include_router(admin_contracts.router)
 api_router.include_router(templates.router)
 api_router.include_router(advertisements.router)
 api_router.include_router(campaigns.router)

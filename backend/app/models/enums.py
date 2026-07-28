@@ -250,6 +250,17 @@ class ContractStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
+class AssetModerationStatus(str, enum.Enum):
+    """Gates NotificationType.NEW_BRAND_MEDIA: an asset reaching AssetStatus.READY
+    only means it's processed and playable, not that it's been broadcast to
+    influencers — that only happens once an admin reviews and approves it here.
+    """
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class NotificationType(str, enum.Enum):
     # Fired to every influencer once a brand's advertisement asset finishes
     # processing and is playable — lets influencers browse fresh brand creative

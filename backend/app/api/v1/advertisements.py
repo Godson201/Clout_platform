@@ -54,6 +54,8 @@ def _asset_to_read(asset: AdvertisementAsset) -> AdvertisementAssetRead:
         error_message=asset.error_message,
         created_at=asset.created_at,
         url=storage.url_for(asset.storage_key),
+        moderation_status=asset.moderation_status,
+        moderation_note=asset.moderation_note,
         renditions=[
             AdvertisementRenditionRead(
                 id=r.id,

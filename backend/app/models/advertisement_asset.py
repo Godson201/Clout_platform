@@ -1,11 +1,12 @@
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
-from app.models.enums import AssetStatus, AssetType
+from app.models.enums import AssetModerationStatus, AssetStatus, AssetType
 from app.models.mixins import TimestampMixin, UUIDPk
 
 if TYPE_CHECKING:
@@ -43,6 +44,17 @@ class AdvertisementAsset(UUIDPk, TimestampMixin, Base):
         default=AssetStatus.UPLOADED,
     )
     error_message: Mapped[str | None] = mapped_column(Text, default=None)
+
+    # Separate from `status` above: `status` tracks the FFmpeg processing
+    # pipeline (is it playable yet?), this tracks admin review (has it been
+    # cleared to broadcast to influencers?). See AssetModerationStatus docstring.
+    moderation_status: Mapped[AssetModerationStatus] = mapped_column(
+        Enum(AssetModerationStatus, name="asset_moderation_status", values_callable=lambda e: [m.value for m in e]),
+        default=AssetModerationStatus.PENDING,
+    )
+    moderation_note: Mapped[str | None] = mapped_column(Text, default=None)
+    moderated_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), default=None)
+    moderated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     advertisement: Mapped["Advertisement"] = relationship(back_populates="assets")
     renditions: Mapped[list["AdvertisementRendition"]] = relationship(

@@ -13,3 +13,8 @@ export interface Contract {
   responded_at: string | null;
   created_at: string;
 }
+
+export interface AdminContract extends Contract {
+  brand_name: string;
+  influencer_username: string;
+}

@@ -27,3 +27,8 @@ class ProposeContractRequest(BaseModel):
     campaign_id: uuid.UUID | None = None
     title: str = Field(min_length=2, max_length=255)
     terms_text: str = Field(min_length=10, max_length=10_000)
+
+
+class AdminContractRead(ContractRead):
+    brand_name: str
+    influencer_username: str

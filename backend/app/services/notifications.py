@@ -2,7 +2,6 @@ import uuid
 
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 from app.models.enums import NotificationType, UserType
 from app.models.notification import Notification
@@ -51,30 +50,6 @@ async def notify_all_influencers(
     rows = [_row(uid, type_, title, body, link, data or {}) for uid in user_ids]
     await db.execute(insert(Notification), rows)
     await db.commit()
-
-
-def notify_all_influencers_sync(
-    db: Session,
-    *,
-    type_: NotificationType,
-    title: str,
-    body: str,
-    link: str | None = None,
-    data: dict | None = None,
-) -> None:
-    """Sync-session counterpart of `notify_all_influencers` for use from Celery
-    tasks (see app/tasks/video_processing_tasks.py), which run against
-    SyncSessionLocal rather than the async engine."""
-    user_ids = (
-        db.execute(select(User.id).where(User.user_type == UserType.INFLUENCER, User.is_active.is_(True)))
-        .scalars()
-        .all()
-    )
-    if not user_ids:
-        return
-    rows = [_row(uid, type_, title, body, link, data or {}) for uid in user_ids]
-    db.execute(insert(Notification), rows)
-    db.commit()
 
 
 async def list_notifications_for_user(db: AsyncSession, *, user_id: uuid.UUID, limit: int = 50) -> list[Notification]:

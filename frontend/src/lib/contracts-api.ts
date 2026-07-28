@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Contract } from "@/types/contract";
+import type { AdminContract, Contract } from "@/types/contract";
 
 export interface ProposeContractInput {
   counterpart_id: string;
@@ -35,5 +35,10 @@ export async function declineContract(id: string): Promise<Contract> {
 
 export async function cancelContract(id: string): Promise<Contract> {
   const { data } = await api.post<Contract>(`/contracts/${id}/cancel`);
+  return data;
+}
+
+export async function listAllContractsAdmin(): Promise<AdminContract[]> {
+  const { data } = await api.get<AdminContract[]>("/admin/contracts");
   return data;
 }
