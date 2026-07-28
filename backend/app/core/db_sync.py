@@ -1,3 +1,5 @@
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -15,7 +17,19 @@ def _sync_url(async_url: str) -> str:
     already-running event loop (i.e. from a FastAPI request handler).
     """
     if async_url.startswith("postgresql+asyncpg://"):
-        return async_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        psycopg2_url = async_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        # Settings._normalize_database_url renamed sslmode -> ssl for asyncpg's
+        # benefit (see core/config.py) — psycopg2 only understands the
+        # original libpq name, so it has to be renamed back here or every
+        # sync (Celery-task) connection fails outright with "invalid DSN
+        # query parameter: ssl".
+        parts = urlsplit(psycopg2_url)
+        query = dict(parse_qsl(parts.query))
+        ssl_value = query.pop("ssl", None)
+        if ssl_value:
+            query["sslmode"] = ssl_value
+        new_query = urlencode(query)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
     if async_url.startswith("sqlite+aiosqlite://"):
         return async_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
     return async_url

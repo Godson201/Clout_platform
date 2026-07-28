@@ -4,7 +4,6 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.crypto import decrypt_token
 from app.core.platform_capabilities import get_capabilities
 from app.models.advertisement_asset import AdvertisementAsset
@@ -27,8 +26,6 @@ from app.models.social_post import SocialPost
 from app.services.notifications import notify_user
 from app.services.social import get_adapter
 from app.services.storage import get_storage_backend
-
-settings = get_settings()
 
 
 def _format_location(influencer: Influencer) -> str:
@@ -87,7 +84,7 @@ async def _get_ready_rendition_url(db: AsyncSession, *, campaign: Campaign, slot
         )
 
     storage = get_storage_backend()
-    return f"{settings.PUBLIC_BASE_URL}{storage.url_for(rendition.storage_key)}"
+    return storage.url_for(rendition.storage_key)
 
 
 async def create_post_for_slot(

@@ -70,7 +70,11 @@ class LocalStorageBackend(StorageBackend):
         return self._resolve(key)
 
     def url_for(self, key: str) -> str:
-        return f"/media/{key}"
+        # Absolute, not relative: the frontend and this API are served from
+        # different origins in production (Vercel vs. Render), so a bare
+        # "/media/..." path would resolve against the frontend's own domain
+        # and 404 instead of reaching this service.
+        return f"{settings.PUBLIC_BASE_URL}/media/{key}"
 
 
 @lru_cache

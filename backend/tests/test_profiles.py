@@ -79,7 +79,7 @@ class TestBrandLogoUpload:
         )
         assert resp.status_code == 200
         assert resp.json()["logo_url"] is not None
-        assert resp.json()["logo_url"].startswith("/media/profile-pictures/brands/")
+        assert "/media/profile-pictures/brands/" in resp.json()["logo_url"]
 
     async def test_rejects_unsupported_extension(self, client):
         token = await _register_brand(client, email="logo-bad-ext@example.com")
@@ -111,7 +111,7 @@ class TestInfluencerPictureUpload:
         )
         assert resp.status_code == 200
         assert resp.json()["profile_picture_url"] is not None
-        assert resp.json()["profile_picture_url"].startswith("/media/profile-pictures/influencers/")
+        assert "/media/profile-pictures/influencers/" in resp.json()["profile_picture_url"]
 
     async def test_rejects_content_type_mismatch(self, client):
         token = await _register_influencer(client, email="pic-bad-mime@example.com", username="picbadmime")
