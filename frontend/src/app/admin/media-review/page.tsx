@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useState } from "react";
 
+import { AssetEngagement } from "@/components/advertisements/asset-engagement";
 import { AssetPreview, assetCaption } from "@/components/advertisements/asset-preview";
 import { RequireUserType } from "@/components/auth/require-user-type";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -87,6 +88,7 @@ function QueueItem({ item }: { item: AssetModerationQueueItem }) {
             </Button>
           </div>
         )}
+        <AssetEngagement assetId={item.id} assetUrl={item.url} />
       </CardContent>
     </Card>
   );

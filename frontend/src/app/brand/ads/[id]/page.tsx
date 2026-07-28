@@ -7,6 +7,7 @@ import type { AxiosError } from "axios";
 
 import { RequireUserType } from "@/components/auth/require-user-type";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { AssetEngagement } from "@/components/advertisements/asset-engagement";
 import {
   AssetPreview,
   assetCaption,
@@ -101,6 +102,7 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
             ))}
           </div>
         )}
+        <AssetEngagement assetId={asset.id} assetUrl={asset.url} />
       </CardContent>
     </Card>
   );

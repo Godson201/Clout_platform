@@ -273,3 +273,6 @@ class NotificationType(str, enum.Enum):
     SLOT_CLAIMED = "slot_claimed"
     # Fired to a campaign's brand once its MoMo funding payment is confirmed.
     PAYMENT_CONFIRMED = "payment_confirmed"
+    # Fired to a brand when an admin leaves feedback on one of their draft ad
+    # assets (see AssetComment) — not fired for the brand's own comments.
+    ASSET_COMMENT = "asset_comment"

@@ -9,6 +9,8 @@ from app.models.advertisement_asset import AdvertisementAsset  # noqa: F401
 from app.models.advertisement_rendition import AdvertisementRendition  # noqa: F401
 from app.models.advertisement_template import AdvertisementTemplate  # noqa: F401
 from app.models.announcement import Announcement  # noqa: F401
+from app.models.asset_comment import AssetComment  # noqa: F401
+from app.models.asset_like import AssetLike  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.brand import Brand  # noqa: F401
 from app.models.campaign import Campaign  # noqa: F401
@@ -44,6 +46,8 @@ __all__ = [
     "AdvertisementRendition",
     "AdvertisementTemplate",
     "Announcement",
+    "AssetComment",
+    "AssetLike",
     "AuditLog",
     "Brand",
     "Campaign",

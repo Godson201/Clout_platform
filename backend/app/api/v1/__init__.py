@@ -10,6 +10,7 @@ from app.api.v1 import (
     admin_templates,
     advertisements,
     announcements,
+    asset_engagement,
     auth,
     brands,
     campaigns,
@@ -41,6 +42,7 @@ api_router.include_router(admin_asset_moderation.router)
 api_router.include_router(admin_contracts.router)
 api_router.include_router(templates.router)
 api_router.include_router(advertisements.router)
+api_router.include_router(asset_engagement.router)
 api_router.include_router(campaigns.router)
 api_router.include_router(marketplace.router)
 api_router.include_router(slots.router)
