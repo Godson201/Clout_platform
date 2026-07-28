@@ -1,4 +1,4 @@
-from tests.factories import connected_brand_and_influencer, register_influencer_token
+from tests.factories import connected_brand_and_influencer, register_influencer_token, wait_for_asset_ready
 from tests.test_admin_flow import _make_admin_token
 from tests.test_advertisements import _brand_token, _get_template_id
 
@@ -69,7 +69,7 @@ class TestAssetModerationGate:
             files={"file": ("clip.mp4", tiny_video_bytes, "video/mp4")},
             headers={"Authorization": f"Bearer {brand_token}"},
         )
-        asset = upload_resp.json()
+        asset = await wait_for_asset_ready(client, ad_id, upload_resp.json()["id"], brand_token)
         assert asset["status"] == "ready"
         assert asset["moderation_status"] == "pending"
 

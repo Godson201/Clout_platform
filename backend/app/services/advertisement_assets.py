@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 import uuid
 
@@ -12,6 +14,29 @@ from app.models.enums import AssetStatus, AssetType, SocialPlatform
 from app.services.storage import allowed_extensions, generate_storage_key, get_storage_backend, read_with_limit
 
 settings = get_settings()
+logger = logging.getLogger("clout")
+
+# Video transcoding can run for minutes on constrained hosts — the upload
+# response must never wait on it (a platform-level proxy timeout would 502
+# the client and, worse, can kill the in-flight work with nothing left to
+# mark the asset FAILED). Kept in a module-level set only so CPython doesn't
+# garbage-collect a still-running task that nothing else holds a reference to.
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _fire_and_forget(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+
+    def _on_done(t: asyncio.Task) -> None:
+        _background_tasks.discard(t)
+        if t.cancelled():
+            return
+        exc = t.exception()
+        if exc is not None:
+            logger.error("Background video processing dispatch failed", exc_info=exc)
+
+    task.add_done_callback(_on_done)
 
 _MAX_MB_BY_TYPE = {
     AssetType.VIDEO: settings.MAX_VIDEO_UPLOAD_MB,
@@ -90,12 +115,13 @@ async def store_advertisement_asset(
         # module that imports this file (e.g. plain profile-CRUD tests).
         from app.tasks.video_processing_tasks import process_advertisement_asset
 
-        # run_in_threadpool matters even (especially) in CELERY_TASK_ALWAYS_EAGER
-        # dev mode: eager mode runs the *entire* ffmpeg pipeline synchronously
-        # wherever `.delay()` is called, which would otherwise block this
-        # request's event loop — and every other concurrent request — for the
-        # duration of the transcode.
-        await run_in_threadpool(process_advertisement_asset.delay, str(asset.id))
+        # Not awaited: this response must return immediately regardless of how
+        # long the transcode takes. run_in_threadpool still matters even in
+        # CELERY_TASK_ALWAYS_EAGER dev mode — eager mode runs the *entire*
+        # ffmpeg pipeline synchronously wherever `.delay()` is called, which
+        # would otherwise block the event loop for every other concurrent
+        # request too, not just this one.
+        _fire_and_forget(run_in_threadpool(process_advertisement_asset.delay, str(asset.id)))
 
     return asset
 

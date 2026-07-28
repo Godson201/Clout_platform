@@ -1,3 +1,4 @@
+from tests.factories import wait_for_asset_ready
 from tests.test_advertisements import _brand_token, _get_template_id
 
 
@@ -79,11 +80,8 @@ class TestVideoProcessingPipeline:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 201
-        asset = resp.json()
+        asset = await wait_for_asset_ready(client, ad_id, resp.json()["id"], token)
 
-        # CELERY_TASK_ALWAYS_EAGER=true means the transcode already ran
-        # synchronously (via run_in_threadpool) by the time this response
-        # came back — no polling needed in the test.
         assert asset["status"] == "ready"
         assert asset["duration_seconds"] is not None
         assert 1.0 < asset["duration_seconds"] < 3.0

@@ -68,6 +68,8 @@ def transcode_for_platform(input_path: str, output_path: str, spec: PlatformVide
         scale_crop,
         "-c:v",
         "libx264",
+        "-preset",
+        "ultrafast",
         "-b:v",
         f"{spec.video_bitrate_kbps}k",
         "-c:a",

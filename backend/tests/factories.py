@@ -3,8 +3,25 @@ need a brand with a *ready* advertisement and/or an influencer with a profile â€
 building that by hand in every test would bury the actual assertions.
 """
 
+import asyncio
+
 from tests.test_advertisements import _brand_token, _get_template_id
 from tests.test_auth_flow import _register_influencer
+
+
+async def wait_for_asset_ready(client, ad_id: str, asset_id: str, token: str, *, timeout: float = 30.0) -> dict:
+    """Video processing is dispatched fire-and-forget (see
+    services/advertisement_assets.py) so an upload response no longer waits on
+    the transcode â€” poll until it lands instead of asserting on it inline.
+    """
+    deadline = asyncio.get_event_loop().time() + timeout
+    while asyncio.get_event_loop().time() < deadline:
+        detail = await client.get(f"/api/v1/advertisements/{ad_id}", headers={"Authorization": f"Bearer {token}"})
+        asset = next(a for a in detail.json()["assets"] if a["id"] == asset_id)
+        if asset["status"] in ("ready", "failed"):
+            return asset
+        await asyncio.sleep(0.2)
+    raise AssertionError(f"Asset {asset_id} never finished processing within {timeout}s")
 
 
 async def register_brand_with_ready_ad(client, tiny_video_bytes: bytes, *, email: str, title: str = "Campaign ad") -> tuple[str, str]:
@@ -28,7 +45,8 @@ async def register_brand_with_ready_ad(client, tiny_video_bytes: bytes, *, email
         files={"file": ("clip.mp4", tiny_video_bytes, "video/mp4")},
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert upload_resp.json()["status"] == "ready", upload_resp.json()
+    asset = await wait_for_asset_ready(client, ad_id, upload_resp.json()["id"], token)
+    assert asset["status"] == "ready", asset
 
     ready_resp = await client.patch(
         f"/api/v1/advertisements/{ad_id}",
