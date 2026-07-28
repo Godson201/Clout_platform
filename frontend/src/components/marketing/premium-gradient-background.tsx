@@ -12,22 +12,22 @@ export function PremiumGradientBackground({ className = "" }: { className?: stri
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(160deg, #071A2F 0%, #0C5E82 55%, #00A8C6 100%)",
+            "linear-gradient(160deg, #0B0714 0%, #1F1033 55%, #2A1250 100%)",
         }}
       />
 
       {/* Soft mesh glows */}
       <div
         className="absolute -top-24 -left-24 size-[32rem] rounded-full opacity-40 blur-3xl animate-float"
-        style={{ background: "radial-gradient(circle, rgba(0,168,198,0.55) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(230,18,125,0.55) 0%, transparent 70%)" }}
       />
       <div
         className="absolute top-1/3 -right-32 size-[36rem] rounded-full opacity-30 blur-3xl animate-float"
-        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.5) 0%, transparent 70%)", animationDelay: "1.5s" }}
+        style={{ background: "radial-gradient(circle, rgba(61,107,245,0.5) 0%, transparent 70%)", animationDelay: "1.5s" }}
       />
       <div
         className="absolute bottom-0 left-1/4 size-[28rem] rounded-full opacity-25 blur-3xl animate-float"
-        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%)", animationDelay: "3s" }}
+        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)", animationDelay: "3s" }}
       />
 
       {/* Translucent geometric shapes */}
