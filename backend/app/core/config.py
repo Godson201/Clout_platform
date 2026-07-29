@@ -120,6 +120,14 @@ class Settings(BaseSettings):
     META_APP_ID: str | None = None
     META_APP_SECRET: str | None = None
 
+    # Separate from META_APP_ID/SECRET on purpose: "Instagram API with
+    # Instagram Login" is a distinct Meta product from classic Facebook
+    # Login-based Instagram access, with its own app credentials and OAuth
+    # host (see app/services/social/instagram_login.py) — not just a scope
+    # difference on the same app.
+    INSTAGRAM_APP_ID: str | None = None
+    INSTAGRAM_APP_SECRET: str | None = None
+
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None
 

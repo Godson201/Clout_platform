@@ -19,10 +19,6 @@ GRAPH_VERSION = "v19.0"
 GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_VERSION}"
 AUTH_URL = f"https://www.facebook.com/{GRAPH_VERSION}/dialog/oauth"
 
-# instagram_content_publish only works for an Instagram Business/Creator account
-# linked to a Facebook Page, and requires Meta App Review before it works for
-# anyone other than the app's own test users — see PLATFORM_CAPABILITIES.
-INSTAGRAM_SCOPES = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement"
 FACEBOOK_SCOPES = "pages_show_list,pages_manage_posts,pages_read_engagement"
 
 
@@ -32,15 +28,17 @@ class MetaConfigurationError(RuntimeError):
 
 def _require(value: str | None, name: str) -> str:
     if not value:
-        raise MetaConfigurationError(f"{name} is not configured — set it to use Meta (Instagram/Facebook) live")
+        raise MetaConfigurationError(f"{name} is not configured — set it to use Meta (Facebook) live")
     return value
 
 
 class _MetaOAuthBase:
-    """Instagram and Facebook are both Meta Graph API products sharing the same
-    OAuth app and token-exchange endpoint — only the scopes requested and the
-    publish/metrics endpoints differ, which is why this is a shared base rather
-    than duplicated per adapter.
+    """Classic Facebook Login-based Meta Graph API OAuth. Instagram used to
+    share this (see git history) but now goes through the standalone
+    "Instagram API with Instagram Login" product instead — its own app
+    credentials, its own OAuth host — see services/social/instagram_login.py.
+    Kept as a base class rather than folded into FacebookAdapter directly in
+    case another classic-Facebook-Login Meta product joins it later.
     """
 
     scopes: str
@@ -141,58 +139,6 @@ class _MetaOAuthBase:
         if since is None:
             return results
         return [c for c in results if c.posted_at is not None and c.posted_at > since]
-
-
-class InstagramAdapter(_MetaOAuthBase):
-    platform = SocialPlatform.INSTAGRAM
-    scopes = INSTAGRAM_SCOPES
-
-    async def publish_post(self, *, access_token: str, video_url: str, caption: str) -> PublishResult:
-        # Instagram Content Publishing is two calls: create a media container,
-        # then publish it — `access_token`'s external_account_id is the IG
-        # Business Account id, threaded through via the caller (services/social_posting.py).
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # NOTE: the IG Business Account id is required here; callers pass it
-            # embedded in `access_token`'s owning SocialAccount.external_account_id,
-            # not shown in this signature — see services/social_posting.py.
-            container_resp = await client.post(
-                f"{GRAPH_BASE}/me/media",
-                data={"video_url": video_url, "caption": caption, "media_type": "REELS", "access_token": access_token},
-            )
-            container_resp.raise_for_status()
-            creation_id = container_resp.json()["id"]
-
-            publish_resp = await client.post(
-                f"{GRAPH_BASE}/me/media_publish", data={"creation_id": creation_id, "access_token": access_token}
-            )
-            publish_resp.raise_for_status()
-            media_id = publish_resp.json()["id"]
-
-        return PublishResult(external_post_id=media_id, post_url=f"https://www.instagram.com/reel/{media_id}/")
-
-    async def fetch_metrics(self, *, access_token: str, external_post_id: str) -> MetricsResult:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                f"{GRAPH_BASE}/{external_post_id}/insights",
-                params={"metric": "plays,likes,comments,shares", "access_token": access_token},
-            )
-            if resp.status_code == 404:
-                return MetricsResult(views=0, likes=0, comments=0, shares=0, post_exists=False)
-            resp.raise_for_status()
-            values = {row["name"]: row["values"][0]["value"] for row in resp.json().get("data", [])}
-
-        return MetricsResult(
-            views=values.get("plays", 0),
-            likes=values.get("likes", 0),
-            comments=values.get("comments", 0),
-            shares=values.get("shares", 0),
-            post_exists=True,
-        )
-
-    async def fetch_comments(
-        self, *, access_token: str, external_post_id: str, since: datetime | None
-    ) -> list[CommentResult]:
-        return await self._fetch_graph_comments(access_token=access_token, external_post_id=external_post_id, since=since)
 
 
 class FacebookAdapter(_MetaOAuthBase):

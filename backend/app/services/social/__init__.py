@@ -1,7 +1,8 @@
 from app.core.config import get_settings
 from app.models.enums import SocialPlatform
 from app.services.social.base import SocialPlatformAdapter
-from app.services.social.meta import FacebookAdapter, InstagramAdapter
+from app.services.social.instagram_login import InstagramLoginAdapter
+from app.services.social.meta import FacebookAdapter
 from app.services.social.mock import MockSocialAdapter
 from app.services.social.tiktok import TikTokAdapter
 from app.services.social.youtube import YouTubeAdapter
@@ -10,7 +11,11 @@ __all__ = ["SocialPlatformAdapter", "get_adapter"]
 
 _real_adapters: dict[SocialPlatform, SocialPlatformAdapter] = {
     SocialPlatform.TIKTOK: TikTokAdapter(),
-    SocialPlatform.INSTAGRAM: InstagramAdapter(),
+    # Instagram uses the newer standalone "Instagram API with Instagram Login"
+    # product (own app credentials, own OAuth host) rather than the classic
+    # Facebook Login-based Instagram access meta.py's InstagramAdapter still
+    # implements — see instagram_login.py's module docstring for why.
+    SocialPlatform.INSTAGRAM: InstagramLoginAdapter(),
     SocialPlatform.FACEBOOK: FacebookAdapter(),
     SocialPlatform.YOUTUBE: YouTubeAdapter(),
 }
@@ -24,7 +29,9 @@ def _platform_is_configured(platform: SocialPlatform, settings) -> bool:
     adapter, which already labels itself "(simulated)" on the consent page,
     so this never silently pretends to be a real connection.
     """
-    if platform in (SocialPlatform.INSTAGRAM, SocialPlatform.FACEBOOK):
+    if platform == SocialPlatform.INSTAGRAM:
+        return bool(settings.INSTAGRAM_APP_ID and settings.INSTAGRAM_APP_SECRET)
+    if platform == SocialPlatform.FACEBOOK:
         return bool(settings.META_APP_ID and settings.META_APP_SECRET)
     if platform == SocialPlatform.TIKTOK:
         return bool(settings.TIKTOK_CLIENT_KEY and settings.TIKTOK_CLIENT_SECRET)
