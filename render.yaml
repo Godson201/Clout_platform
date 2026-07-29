@@ -34,7 +34,11 @@ services:
       - key: SOCIAL_TOKEN_ENCRYPTION_KEY
         sync: false
       - key: SOCIAL_OAUTH_MODE
-        value: mock
+        value: live
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
       - key: EMAIL_MODE
         value: smtp
       - key: SMTP_HOST
