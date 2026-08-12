@@ -25,15 +25,34 @@ REFRESH_COOKIE_NAME = "clout_refresh_token"
 REFRESH_COOKIE_PATH = "/api/v1/auth"
 
 
+def _is_cross_site_deployment() -> bool:
+    # The frontend (Vercel) and this API (Render) are different registrable
+    # domains in production, which makes every refresh call a cross-site
+    # fetch — SameSite=Lax cookies are withheld from those entirely (Lax only
+    # exempts top-level navigations), so refresh silently 401s. None is the
+    # correct attribute for a cross-site cookie, but it requires Secure, and
+    # local dev's frontend/backend share "localhost" (same-site, different
+    # port) where Lax already works and non-HTTPS None cookies are rejected
+    # outright — hence the environment split rather than hardcoding one.
+    return settings.ENVIRONMENT == "production"
+
+
+def _refresh_cookie_kwargs() -> dict:
+    cross_site = _is_cross_site_deployment()
+    return {
+        "httponly": True,
+        "secure": cross_site,
+        "samesite": "none" if cross_site else "lax",
+        "path": REFRESH_COOKIE_PATH,
+    }
+
+
 def _set_refresh_cookie(response: Response, raw_token: str, expires_at) -> None:
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=raw_token,
-        httponly=True,
-        secure=settings.ENVIRONMENT == "production",
-        samesite="lax",
-        path=REFRESH_COOKIE_PATH,
         expires=int(expires_at.timestamp()),
+        **_refresh_cookie_kwargs(),
     )
 
 
@@ -91,7 +110,13 @@ async def logout(
 ) -> None:
     if clout_refresh_token is not None:
         await auth_service.revoke_refresh_token(db, clout_refresh_token)
-    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+    # Must match the attributes set_cookie used, or some browsers won't
+    # recognize this as overwriting the same cookie and leave the old one in
+    # place (samesite/secure aren't part of Response.delete_cookie's identity
+    # matching the way name/path/domain are, but sending them keeps intent
+    # explicit and avoids relying on default-attribute behavior differing
+    # between Starlette versions).
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, **_refresh_cookie_kwargs())
 
 
 @router.post("/verify-email", status_code=status.HTTP_200_OK)
