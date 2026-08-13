@@ -1,16 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import type { AxiosError } from "axios";
 
+import { AssetPreview, assetCaption } from "@/components/advertisements/asset-preview";
 import { RequireUserType } from "@/components/auth/require-user-type";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { browseMarketplace, claimSlot, type MarketplaceFilters } from "@/lib/campaigns-api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { browseApprovedMedia, browseMarketplace, claimSlot, type MarketplaceFilters } from "@/lib/campaigns-api";
 import type { MarketplaceSlot } from "@/types/campaign";
 
 const PLATFORMS = ["tiktok", "instagram", "facebook", "youtube"];
@@ -154,11 +157,70 @@ function MarketplaceBrowser() {
   );
 }
 
+function BrandMediaGallery() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["marketplace", "media"],
+    queryFn: browseApprovedMedia,
+  });
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Approved creative from every brand on CLOUT — see exactly what they're looking for before you claim a slot.
+      </p>
+      {isLoading && <p className="text-sm text-muted-foreground">Loading brand media...</p>}
+      {error && <p className="text-sm text-destructive">Could not load brand media.</p>}
+      {data && data.length === 0 && (
+        <p className="text-sm text-muted-foreground">No approved brand media yet — check back soon.</p>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {data?.map((item) => (
+          <Card key={item.id}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="text-base">{item.advertisement_title}</CardTitle>
+                <p className="text-xs text-muted-foreground">{item.brand_name}</p>
+              </div>
+              <Badge className="capitalize">{item.asset_type}</Badge>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <AssetPreview asset={item} />
+              <p className="text-xs text-muted-foreground">{assetCaption(item)}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MarketplaceTabs() {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "media" ? "media" : "slots";
+
+  return (
+    <Tabs defaultValue={defaultTab}>
+      <TabsList>
+        <TabsTrigger value="slots">Open slots</TabsTrigger>
+        <TabsTrigger value="media">Brand media</TabsTrigger>
+      </TabsList>
+      <TabsContent value="slots" className="mt-4">
+        <MarketplaceBrowser />
+      </TabsContent>
+      <TabsContent value="media" className="mt-4">
+        <BrandMediaGallery />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 export default function MarketplacePage() {
   return (
     <RequireUserType allow={["influencer"]}>
       <DashboardShell title="Marketplace">
-        <MarketplaceBrowser />
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading marketplace...</p>}>
+          <MarketplaceTabs />
+        </Suspense>
       </DashboardShell>
     </RequireUserType>
   );

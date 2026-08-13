@@ -25,7 +25,7 @@ from app.models.user import User
 from app.models.view_rate import ViewRate
 from app.services.wallet import create_wallet_for_owner
 
-ROLES = ["brand", "influencer", "admin"]
+ROLES = ["brand", "influencer", "admin", "super_admin"]
 
 PERMISSIONS = [
     "admin:manage_users",
@@ -152,6 +152,12 @@ async def seed_external_wallet(db) -> None:
 
 
 async def seed_admin_user(db, roles: dict[str, Role]) -> None:
+    """The seed admin is also the platform's one and only super_admin — the
+    account that can promote other users to admin (see POST
+    /admin/users/{id}/promote-to-admin). Idempotent for role assignment too,
+    not just creation, so re-running this after adding the super_admin role
+    to an already-seeded database still grants it to the existing account.
+    """
     settings = get_settings()
     admin_email = settings.SEED_ADMIN_EMAIL
     admin_password = settings.SEED_ADMIN_PASSWORD
@@ -160,22 +166,31 @@ async def seed_admin_user(db, roles: dict[str, Role]) -> None:
         print("SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set — skipping admin user seed.")
         return
 
-    result = await db.execute(select(User).where(User.email == admin_email.lower()))
-    if result.scalar_one_or_none() is not None:
-        print(f"Admin user {admin_email} already exists — skipping.")
-        return
-
-    admin_user = User(
-        email=admin_email.lower(),
-        hashed_password=hash_password(admin_password),
-        user_type=UserType.ADMIN,
-        is_active=True,
-        is_verified=True,
+    result = await db.execute(
+        select(User).options(selectinload(User.roles)).where(User.email == admin_email.lower())
     )
-    admin_user.roles.append(roles["admin"])
-    db.add(admin_user)
+    admin_user = result.scalar_one_or_none()
+
+    if admin_user is None:
+        admin_user = User(
+            email=admin_email.lower(),
+            hashed_password=hash_password(admin_password),
+            user_type=UserType.ADMIN,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(admin_user)
+        await db.flush()
+        print(f"Created admin user {admin_email}.")
+    else:
+        print(f"Admin user {admin_email} already exists — ensuring roles are up to date.")
+
+    existing_role_names = {r.name for r in admin_user.roles}
+    for role_name in ("admin", "super_admin"):
+        if role_name not in existing_role_names:
+            admin_user.roles.append(roles[role_name])
+
     await db.commit()
-    print(f"Created admin user {admin_email}.")
 
 
 async def main() -> None:

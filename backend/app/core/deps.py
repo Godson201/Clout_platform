@@ -65,5 +65,6 @@ def require_roles(*allowed_role_names: str):
 
 
 require_admin = require_roles("admin")
+require_super_admin = require_roles("super_admin")
 require_brand = require_user_types(UserType.BRAND)
 require_influencer = require_user_types(UserType.INFLUENCER)

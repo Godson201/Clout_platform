@@ -5,15 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.deps import require_influencer
 from app.models.advertisement import Advertisement
+from app.models.advertisement_asset import AdvertisementAsset
 from app.models.brand import Brand
 from app.models.campaign import Campaign
 from app.models.campaign_slot import CampaignSlot
-from app.models.enums import CampaignStatus, FollowerTier, SlotStatus, SocialPlatform
+from app.models.enums import AssetModerationStatus, AssetStatus, CampaignStatus, FollowerTier, SlotStatus, SocialPlatform
 from app.models.influencer import Influencer
 from app.models.user import User
+from app.schemas.advertisement import AssetModerationQueueItem
 from app.schemas.campaign_slot import MarketplaceSlotRead, MatchScoreBreakdownRead
 from app.services.matching import get_active_platforms, get_engagement_rate, get_reliability_score, score_slot_for_influencer
 from app.services.recommendations import get_historical_performance_boost
+from app.services.storage import get_storage_backend
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"], dependencies=[Depends(require_influencer)])
 
@@ -119,3 +122,56 @@ async def browse_marketplace_slots(
     # count grows large enough for this to matter.
     scored.sort(key=lambda s: s.final_score, reverse=True)
     return scored[:limit]
+
+
+@router.get("/media", response_model=list[AssetModerationQueueItem])
+async def browse_approved_media(
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[AssetModerationQueueItem]:
+    """Every asset here already passed admin review (see
+    services/asset_moderation.py's approve_asset), which is also what fires
+    the NEW_BRAND_MEDIA notification pointing at /influencer/marketplace —
+    this is that notification's actual destination: a browsable gallery of
+    what brands are looking for, playable directly at original quality, not
+    just a bell-icon mention.
+    """
+    stmt = (
+        select(AdvertisementAsset, Advertisement, Brand)
+        .join(Advertisement, AdvertisementAsset.advertisement_id == Advertisement.id)
+        .join(Brand, Advertisement.brand_id == Brand.id)
+        .where(
+            AdvertisementAsset.status == AssetStatus.READY,
+            AdvertisementAsset.moderation_status == AssetModerationStatus.APPROVED,
+        )
+        .order_by(AdvertisementAsset.moderated_at.desc())
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).all()
+
+    storage = get_storage_backend()
+    items: list[AssetModerationQueueItem] = []
+    for asset, advertisement, brand in rows:
+        items.append(
+            AssetModerationQueueItem(
+                id=asset.id,
+                asset_type=asset.asset_type,
+                original_filename=asset.original_filename,
+                mime_type=asset.mime_type,
+                file_size_bytes=asset.file_size_bytes,
+                duration_seconds=asset.duration_seconds,
+                width=asset.width,
+                height=asset.height,
+                status=asset.status,
+                error_message=asset.error_message,
+                created_at=asset.created_at,
+                url=storage.url_for(asset.storage_key),
+                moderation_status=asset.moderation_status,
+                moderation_note=None,
+                renditions=[],
+                advertisement_id=advertisement.id,
+                advertisement_title=advertisement.title,
+                brand_name=brand.business_name,
+            )
+        )
+    return items

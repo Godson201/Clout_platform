@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { promoteToAdmin } from "@/lib/admin-api";
+import { useAuthStore } from "@/store/auth-store";
 import type { Page, User, UserType } from "@/types/auth";
 
 const PAGE_SIZE = 10;
@@ -42,6 +44,7 @@ function UsersTable() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [userType, setUserType] = useState<UserType | "all">("all");
+  const isSuperAdmin = useAuthStore((s) => s.user?.roles.includes("super_admin") ?? false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "users", page, userType],
@@ -55,6 +58,15 @@ function UsersTable() {
 
   async function handleVerify(user: User, status: "approved" | "rejected") {
     await verifyEntity(user, status);
+    await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+  }
+
+  async function handlePromote(user: User) {
+    const confirmed = window.confirm(
+      `Make ${user.email} an admin? They will immediately lose access to their ${user.user_type} dashboard and gain full admin access instead.`,
+    );
+    if (!confirmed) return;
+    await promoteToAdmin(user.id);
     await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
   }
 
@@ -118,6 +130,11 @@ function UsersTable() {
                       <Button size="sm" variant="secondary" onClick={() => toggleActive(user)}>
                         {user.is_active ? "Suspend" : "Reactivate"}
                       </Button>
+                      {isSuperAdmin && user.user_type !== "admin" && (
+                        <Button size="sm" variant="outline" onClick={() => handlePromote(user)}>
+                          Make admin
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -192,6 +209,20 @@ export default function AdminDashboardPage() {
               </p>
               <Button size="sm" render={<Link href="/admin/contracts" />}>
                 View contracts
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity log</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Every audited action across the platform — role changes, verification decisions, payments,
+                moderation calls — in one place.
+              </p>
+              <Button size="sm" render={<Link href="/admin/activity-logs" />}>
+                View activity log
               </Button>
             </CardContent>
           </Card>

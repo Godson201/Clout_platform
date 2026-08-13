@@ -81,7 +81,7 @@ class TestAssetModerationGate:
         feed = await client.get("/api/v1/notifications", headers={"Authorization": f"Bearer {inf_token}"})
         notif = next(n for n in feed.json() if n["type"] == "new_brand_media")
         assert notif["data"]["asset_type"] == "video"
-        assert notif["link"] == "/influencer/marketplace"
+        assert notif["link"] == "/influencer/marketplace?tab=media"
 
     async def test_rejected_asset_never_notifies_and_shows_reason_to_brand(self, client):
         inf_token = await register_influencer_token(client, email="notify-inf-3@example.com", username="notifyinf3")

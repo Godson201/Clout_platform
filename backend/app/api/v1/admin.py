@@ -6,10 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
-from app.core.deps import require_admin
+from app.core.deps import require_admin, require_super_admin
 from app.models.brand import Brand
 from app.models.enums import UserType
 from app.models.influencer import Influencer
+from app.models.rbac import Role
 from app.models.user import User
 from app.schemas.admin import UserStatusUpdate, VerificationDecision
 from app.schemas.brand import BrandRead
@@ -69,6 +70,49 @@ async def update_user_status(
         entity_id=user.id,
         before=before,
         after={"is_active": user.is_active},
+    )
+
+    await db.commit()
+    await db.refresh(user)
+    return UserRead.from_orm_user(user)
+
+
+@router.post("/users/{user_id}/promote-to-admin", response_model=UserRead)
+async def promote_to_admin(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    super_admin: User = Depends(require_super_admin),
+) -> UserRead:
+    """Only a super_admin can do this — a flat "admin" role has no power to
+    mint more admins, otherwise "super" would mean nothing. Promoting sets
+    user_type=ADMIN outright (not just an extra RBAC role) since every
+    admin-only frontend route gates on user_type, not roles — see
+    RequireUserType. Any existing Brand/Influencer profile row is left in
+    place but becomes inaccessible through their account once promoted.
+    """
+    result = await db.execute(select(User).options(selectinload(User.roles)).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.user_type == UserType.ADMIN:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already an admin")
+
+    admin_role_result = await db.execute(select(Role).where(Role.name == "admin"))
+    admin_role = admin_role_result.scalar_one()
+
+    before = {"user_type": user.user_type.value, "roles": [r.name for r in user.roles]}
+    user.user_type = UserType.ADMIN
+    if admin_role not in user.roles:
+        user.roles.append(admin_role)
+
+    await write_audit_log(
+        db,
+        actor_user_id=super_admin.id,
+        action="admin.user.promote_to_admin",
+        entity_type="user",
+        entity_id=user.id,
+        before=before,
+        after={"user_type": user.user_type.value, "roles": [r.name for r in user.roles]},
     )
 
     await db.commit()

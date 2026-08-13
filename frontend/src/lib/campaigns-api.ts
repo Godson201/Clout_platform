@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { CampaignAnalytics } from "@/types/analytics";
+import type { AssetModerationQueueItem } from "@/types/advertisement";
 import type { Page } from "@/types/auth";
 import type { Campaign, CampaignDetail, MarketplaceSlot, MySlot } from "@/types/campaign";
 import type { CampaignFundingResponse, Payment } from "@/types/payment";
@@ -75,6 +76,11 @@ export async function browseMarketplace(filters: MarketplaceFilters = {}): Promi
 
 export async function claimSlot(slotId: string) {
   const { data } = await api.post(`/slots/${slotId}/claim`);
+  return data;
+}
+
+export async function browseApprovedMedia(): Promise<AssetModerationQueueItem[]> {
+  const { data } = await api.get<AssetModerationQueueItem[]>("/marketplace/media");
   return data;
 }
 

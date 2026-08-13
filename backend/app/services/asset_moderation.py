@@ -91,7 +91,7 @@ async def _notify_influencers_of_approved_media(db: AsyncSession, *, asset: Adve
         title=f"{brand_name} shared new {asset.asset_type.value} content",
         body=f'New {asset.asset_type.value} added to "{advertisement.title if advertisement else "an advertisement"}" '
         f"— see what {brand_name} is looking for.",
-        link="/influencer/marketplace",
+        link="/influencer/marketplace?tab=media",
         data={
             "advertisement_id": str(asset.advertisement_id),
             "asset_id": str(asset.id),
