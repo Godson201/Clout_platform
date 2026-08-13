@@ -171,6 +171,14 @@ async def seed_admin_user(db, roles: dict[str, Role]) -> None:
     )
     admin_user = result.scalar_one_or_none()
 
+    # Re-fetched fresh rather than using the `roles` dict passed in: that dict's
+    # Role objects were loaded before seed_roles_and_permissions' own commit,
+    # which (default expire_on_commit) expires them — touching an expired
+    # instance triggers an implicit attribute refresh, which raises
+    # MissingGreenlet under AsyncSession instead of just working.
+    fresh_roles_result = await db.execute(select(Role).where(Role.name.in_(("admin", "super_admin"))))
+    fresh_roles = {r.name: r for r in fresh_roles_result.scalars().all()}
+
     if admin_user is None:
         admin_user = User(
             email=admin_email.lower(),
@@ -179,16 +187,22 @@ async def seed_admin_user(db, roles: dict[str, Role]) -> None:
             is_active=True,
             is_verified=True,
         )
+        # Assigned directly rather than appended: a freshly constructed User
+        # has never had its `roles` collection loaded from the DB, and once
+        # persistent (post-flush) SQLAlchemy treats an untouched collection as
+        # needing a lazy fetch on next access rather than assuming empty —
+        # same MissingGreenlet trap. A plain assignment here needs no read.
+        admin_user.roles = list(fresh_roles.values())
         db.add(admin_user)
-        await db.flush()
+        await db.commit()
         print(f"Created admin user {admin_email}.")
-    else:
-        print(f"Admin user {admin_email} already exists — ensuring roles are up to date.")
+        return
 
+    print(f"Admin user {admin_email} already exists — ensuring roles are up to date.")
     existing_role_names = {r.name for r in admin_user.roles}
-    for role_name in ("admin", "super_admin"):
+    for role_name, role in fresh_roles.items():
         if role_name not in existing_role_names:
-            admin_user.roles.append(roles[role_name])
+            admin_user.roles.append(role)
 
     await db.commit()
 
