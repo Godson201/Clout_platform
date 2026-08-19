@@ -3,16 +3,27 @@
  * base. Absolutely positioned (`inset-0`) — the parent must be `relative`
  * (or the nearest positioned ancestor) and taller than the content it frames.
  * Pure CSS/SVG, no images, so it stays crisp and fast at any viewport size.
+ *
+ * `photoBehind` thins the base gradient into a color-graded tint (like a
+ * duotone photo treatment) instead of an opaque fill, for stacking on top of
+ * PhotoSlideshowBackground — everything else (glows/shapes/waves) is already
+ * translucent and works unchanged over a photo.
  */
-export function PremiumGradientBackground({ className = "" }: { className?: string }) {
+export function PremiumGradientBackground({
+  className = "",
+  photoBehind = false,
+}: {
+  className?: string;
+  photoBehind?: boolean;
+}) {
   return (
     <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden="true">
       {/* Base gradient */}
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(160deg, #0B0714 0%, #1F1033 55%, #2A1250 100%)",
+          background: "linear-gradient(160deg, #0B0714 0%, #1F1033 55%, #2A1250 100%)",
+          opacity: photoBehind ? 0.72 : 1,
         }}
       />
 

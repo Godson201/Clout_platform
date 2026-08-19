@@ -7,6 +7,7 @@ import type { AxiosError } from "axios";
 import { BadgeCheck, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
 import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
+import { PhotoSlideshowBackground } from "@/components/marketing/photo-slideshow-background";
 import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BackButton } from "@/components/ui/back-button";
@@ -43,7 +44,8 @@ const HIGHLIGHTS = [
 function HeroPanel() {
   return (
     <div className="relative isolate hidden flex-1 flex-col justify-between overflow-hidden p-10 text-white lg:flex">
-      <PremiumGradientBackground />
+      <PhotoSlideshowBackground />
+      <PremiumGradientBackground photoBehind />
       <div className="relative z-10 flex items-center justify-between">
         <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
         <ThemeToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />

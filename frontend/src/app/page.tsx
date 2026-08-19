@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { PhotoSlideshowBackground } from "@/components/marketing/photo-slideshow-background";
 import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,8 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative isolate flex min-h-[calc(100vh-4rem)] items-center overflow-hidden px-6 py-20 text-center">
-      <PremiumGradientBackground />
+      <PhotoSlideshowBackground />
+      <PremiumGradientBackground photoBehind />
       <div className="relative z-10 mx-auto max-w-3xl animate-fade-in">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
           <Sparkles className="size-3.5 text-brand-teal" />
@@ -309,10 +311,18 @@ function PaymentsSection() {
   );
 }
 
+// Same 16 photos as the hero, reversed and offset so this section doesn't
+// crossfade through the exact same sequence a visitor just saw up top.
+const MOTIVATION_BANNER_IMAGES = Array.from(
+  { length: 16 },
+  (_, i) => `/images/slide-${String(16 - ((i + 8) % 16)).padStart(2, "0")}.jpg`,
+);
+
 function MotivationBanner() {
   return (
     <section className="relative isolate overflow-hidden px-6 py-20 text-center text-white">
-      <PremiumGradientBackground />
+      <PhotoSlideshowBackground images={MOTIVATION_BANNER_IMAGES} />
+      <PremiumGradientBackground photoBehind />
       <div className="relative z-10 mx-auto max-w-2xl animate-fade-in">
         <h2 className="text-3xl font-semibold text-balance sm:text-4xl">
           Your next big brand deal — or your next great creator — is one click away.
