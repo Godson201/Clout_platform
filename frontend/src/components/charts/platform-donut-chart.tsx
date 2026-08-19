@@ -3,10 +3,10 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const PLATFORM_COLORS: Record<string, string> = {
-  tiktok: "#E6127D",
+  tiktok: "#EC4899",
   instagram: "#8B5CF6",
   youtube: "#EF4444",
-  facebook: "#3D6BF5",
+  facebook: "#0284C7",
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
