@@ -45,6 +45,7 @@ export function PhotoSlideshowBackground({
           alt=""
           fill
           priority={i === 0}
+          quality={90}
           sizes="100vw"
           className="object-cover duration-1800 transition-opacity ease-in-out"
           style={{ opacity: i === index ? 1 : 0 }}
