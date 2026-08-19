@@ -68,3 +68,16 @@ class ResetPasswordRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class OAuthAuthorizeResponse(BaseModel):
+    authorization_url: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    state: str
+
+
+class OAuthLoginResponse(AccessTokenResponse):
+    created: bool

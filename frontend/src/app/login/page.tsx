@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { AxiosError } from "axios";
 import { BadgeCheck, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
+import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
 import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BackButton } from "@/components/ui/back-button";
@@ -141,6 +142,12 @@ export default function LoginPage() {
                 {isSubmitting ? "Logging in..." : "Log in"}
               </Button>
             </form>
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <ContinueWithGoogleButton label="Log in with Google" />
             <p className="mt-4 text-center text-sm text-muted-foreground">
               No account?{" "}
               <Link href="/register" className="underline underline-offset-4">

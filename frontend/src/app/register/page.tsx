@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { AxiosError } from "axios";
 
+import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
 import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BackButton } from "@/components/ui/back-button";
@@ -162,6 +163,12 @@ function BrandRegisterForm() {
       }}
       className="space-y-4"
     >
+      <ContinueWithGoogleButton userType="brand" />
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        or fill in manually
+        <span className="h-px flex-1 bg-border" />
+      </div>
       <div className="space-y-2">
         <Label htmlFor="business_name">Business name</Label>
         <Input
@@ -248,6 +255,12 @@ function InfluencerRegisterForm() {
       }}
       className="space-y-4"
     >
+      <ContinueWithGoogleButton userType="influencer" />
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        or fill in manually
+        <span className="h-px flex-1 bg-border" />
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="display_name">Display name</Label>

@@ -1,9 +1,16 @@
+import secrets
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.deps import get_current_user
+from app.core.security import as_aware_utc
+from app.models.enums import UserType
+from app.models.oauth_login_state import OAuthLoginState
 from app.models.user import User
 from app.schemas.auth import (
     AccessTokenResponse,
@@ -11,15 +18,21 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     InfluencerRegisterRequest,
     LoginRequest,
+    OAuthAuthorizeResponse,
+    OAuthCallbackRequest,
+    OAuthLoginResponse,
     PasswordResetPromptResponse,
     ResetPasswordRequest,
     VerifyEmailRequest,
 )
 from app.schemas.user import UserRead
 from app.services import auth as auth_service
+from app.services import oauth_login as oauth_login_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
+
+OAUTH_STATE_TTL_MINUTES = 10
 
 REFRESH_COOKIE_NAME = "clout_refresh_token"
 REFRESH_COOKIE_PATH = "/api/v1/auth"
@@ -153,3 +166,62 @@ async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depen
         db, raw_token=payload.token, new_password=payload.new_password, security_answer=payload.security_answer
     )
     return {"detail": "Password updated"}
+
+
+@router.get("/oauth/{provider}/authorize", response_model=OAuthAuthorizeResponse)
+async def oauth_authorize(
+    provider: str, user_type: UserType | None = None, db: AsyncSession = Depends(get_db)
+) -> OAuthAuthorizeResponse:
+    """`user_type` is the register page's Brand/Influencer choice, carried
+    through so a brand-new account gets the right profile fields — omitted
+    from the login page, where only an *existing* linked/matching account can
+    succeed (see oauth_login_service.login_or_register_via_oauth).
+    """
+    state = secrets.token_urlsafe(32)
+    redirect_uri = f"{settings.FRONTEND_BASE_URL}/oauth-login/callback/{provider}"
+
+    url = oauth_login_service.build_authorization_url(provider=provider, state=state, redirect_uri=redirect_uri)
+
+    db.add(
+        OAuthLoginState(
+            provider=provider,
+            state=state,
+            user_type=user_type,
+            redirect_uri=redirect_uri,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=OAUTH_STATE_TTL_MINUTES),
+        )
+    )
+    await db.commit()
+    return OAuthAuthorizeResponse(authorization_url=url)
+
+
+@router.post("/oauth/{provider}/callback", response_model=OAuthLoginResponse)
+async def oauth_callback(
+    provider: str, payload: OAuthCallbackRequest, response: Response, db: AsyncSession = Depends(get_db)
+) -> OAuthLoginResponse:
+    result = await db.execute(select(OAuthLoginState).where(OAuthLoginState.state == payload.state))
+    pending = result.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    if (
+        pending is None
+        or pending.consumed
+        or pending.provider != provider
+        or as_aware_utc(pending.expires_at) < now
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OAuth state")
+
+    # Consumed before the exchange so a retried/duplicated callback with the
+    # same state can't replay it — same pattern as social account connect.
+    pending.consumed = True
+    await db.commit()
+
+    info = await oauth_login_service.exchange_code(provider=provider, code=payload.code, redirect_uri=pending.redirect_uri)
+    user, created = await oauth_login_service.login_or_register_via_oauth(
+        db, provider=provider, info=info, user_type=pending.user_type
+    )
+
+    access_token = auth_service.issue_access_token(user)
+    raw_refresh, expires_at = await auth_service.issue_refresh_token(db, user)
+    _set_refresh_cookie(response, raw_refresh, expires_at)
+    return OAuthLoginResponse(access_token=access_token, user=UserRead.from_orm_user(user), created=created)
