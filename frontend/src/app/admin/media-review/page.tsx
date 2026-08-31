@@ -121,8 +121,8 @@ export default function AdminMediaReviewPage() {
       <DashboardShell title="Media review">
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground">
-            Brand-uploaded video, photo, and audio content waits here once processed and playable. Approving broadcasts
-            a notification to every influencer; rejecting sends the brand your reason and keeps it private.
+            Brand-uploaded video, photo, and audio content waits here once processed and playable. Approving shares it
+            with the audience selected by the brand; rejecting sends the brand your reason and keeps it private.
           </p>
           <MediaReviewQueue />
         </div>

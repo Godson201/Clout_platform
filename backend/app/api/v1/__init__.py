@@ -4,6 +4,7 @@ from app.api.v1 import (
     admin,
     admin_announcements,
     admin_asset_moderation,
+    admin_social_moderation,
     admin_audit_logs,
     admin_contracts,
     admin_pricing,
@@ -41,6 +42,7 @@ api_router.include_router(admin_pricing.router)
 api_router.include_router(admin_settlement.router)
 api_router.include_router(admin_announcements.router)
 api_router.include_router(admin_asset_moderation.router)
+api_router.include_router(admin_social_moderation.router)
 api_router.include_router(admin_audit_logs.router)
 api_router.include_router(admin_contracts.router)
 api_router.include_router(templates.router)

@@ -5,7 +5,7 @@ imported somewhere before `configure_mappers()` runs.
 """
 
 from app.models.advertisement import Advertisement  # noqa: F401
-from app.models.advertisement_asset import AdvertisementAsset  # noqa: F401
+from app.models.advertisement_asset import AdvertisementAsset, AssetShareRecipient  # noqa: F401
 from app.models.advertisement_rendition import AdvertisementRendition  # noqa: F401
 from app.models.advertisement_template import AdvertisementTemplate  # noqa: F401
 from app.models.announcement import Announcement  # noqa: F401
@@ -36,7 +36,7 @@ from app.models.refund import Refund  # noqa: F401
 from app.models.social_account import SocialAccount  # noqa: F401
 from app.models.social_oauth_state import SocialOAuthState  # noqa: F401
 from app.models.social_post import SocialPost  # noqa: F401
-from app.models.social_feed import Follow, NativePost, NativePostComment, NativePostLike, NativePostMedia, NativePostSave  # noqa: F401
+from app.models.social_feed import Follow, Hashtag, NativePost, NativePostComment, NativePostDistribution, NativePostHashtag, NativePostLike, NativePostMedia, NativePostReport, NativePostSave, UserBlock  # noqa: F401
 from app.models.transaction import Transaction  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.view_rate import ViewRate  # noqa: F401
@@ -45,6 +45,7 @@ from app.models.wallet import Wallet  # noqa: F401
 __all__ = [
     "Advertisement",
     "AdvertisementAsset",
+    "AssetShareRecipient",
     "AdvertisementRendition",
     "AdvertisementTemplate",
     "Announcement",

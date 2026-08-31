@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import AdvertisementStatus, AssetModerationStatus, AssetStatus, AssetType, RenditionStatus, SocialPlatform
+from app.models.enums import AdvertisementStatus, AssetDistribution, AssetModerationStatus, AssetStatus, AssetType, RenditionStatus, SocialPlatform
 
 
 class AdvertisementRenditionRead(BaseModel):
@@ -37,6 +37,22 @@ class AdvertisementAssetRead(BaseModel):
     renditions: list[AdvertisementRenditionRead] = []
     moderation_status: AssetModerationStatus
     moderation_note: str | None = None
+    distribution: AssetDistribution
+    recipient_influencer_ids: list[uuid.UUID] = []
+
+
+class AssetDistributionUpdate(BaseModel):
+    distribution: AssetDistribution
+    recipient_influencer_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
+
+
+class InfluencerAudienceOption(BaseModel):
+    id: uuid.UUID
+    display_name: str
+    username: str
+    sector: str | None
+    location: str | None
+    follower_tier: str | None
 
 
 class AdvertisementCreate(BaseModel):

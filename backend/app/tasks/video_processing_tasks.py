@@ -10,10 +10,34 @@ from app.core.platform_specs import PLATFORM_VIDEO_SPECS
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.advertisement_rendition import AdvertisementRendition
 from app.models.enums import AssetStatus, RenditionStatus
+from app.models.social_feed import NativePostMedia
 from app.services.storage import generate_rendition_key, get_storage_backend
 from app.services.video_processing import VideoProcessingError, probe_video, transcode_for_platform
 
 logger = logging.getLogger("clout.tasks")
+
+
+@celery_app.task(name="process_native_post_video")
+def process_native_post_video(media_id: str) -> None:
+    """Normalize a public native video and generate a poster frame. Originals
+    remain private; only the processed rendition is returned by the feed."""
+    storage = get_storage_backend()
+    with SyncSessionLocal() as db:
+        media = db.get(NativePostMedia, uuid.UUID(media_id))
+        if media is None or media.media_type != "video": return
+        media.processing_status = "processing"; media.retry_count += 1; db.commit()
+        output_key = f"social/processed/{media.id}.mp4"
+        thumbnail_key = f"social/thumbnails/{media.id}.jpg"
+        try:
+            transcode_for_platform(storage.local_path(media.storage_key), storage.local_path(output_key), PLATFORM_VIDEO_SPECS[next(iter(PLATFORM_VIDEO_SPECS))])
+            import subprocess, os
+            os.makedirs(os.path.dirname(storage.local_path(thumbnail_key)), exist_ok=True)
+            subprocess.run(["ffmpeg", "-y", "-ss", "0.5", "-i", storage.local_path(output_key), "-frames:v", "1", storage.local_path(thumbnail_key)], capture_output=True, check=True, timeout=60)
+            media.processed_storage_key = output_key; media.thumbnail_storage_key = thumbnail_key; media.processing_status = "ready"; media.error_message = None
+        except Exception as exc:
+            media.processing_status = "failed"; media.error_message = str(exc)
+            storage.delete(output_key); storage.delete(thumbnail_key)
+        db.commit()
 
 
 @celery_app.task(name="process_advertisement_asset")

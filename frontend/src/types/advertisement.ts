@@ -13,6 +13,7 @@ export type AdvertisementStatus = "draft" | "ready" | "archived";
 export type AssetType = "video" | "image" | "logo" | "audio" | "voiceover";
 export type AssetStatus = "uploaded" | "processing" | "ready" | "failed";
 export type AssetModerationStatus = "pending" | "approved" | "rejected";
+export type AssetDistribution = "campaign_eligible" | "specific_influencers" | "all_influencers";
 export type RenditionStatus = "pending" | "processing" | "ready" | "failed";
 export type SocialPlatform = "tiktok" | "instagram" | "facebook" | "youtube";
 
@@ -43,6 +44,17 @@ export interface AdvertisementAsset {
   renditions: AdvertisementRendition[];
   moderation_status: AssetModerationStatus;
   moderation_note: string | null;
+  distribution: AssetDistribution;
+  recipient_influencer_ids: string[];
+}
+
+export interface InfluencerAudienceOption {
+  id: string;
+  display_name: string;
+  username: string;
+  sector: string | null;
+  location: string | null;
+  follower_tier: string | null;
 }
 
 export interface AssetModerationQueueItem extends AdvertisementAsset {

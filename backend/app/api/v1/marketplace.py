@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.advertisement import AssetModerationQueueItem
 from app.schemas.campaign_slot import MarketplaceSlotRead, MatchScoreBreakdownRead
 from app.services.matching import get_active_platforms, get_engagement_rate, get_reliability_score, score_slot_for_influencer
+from app.services.campaign_media_access import accessible_asset_ids
 from app.services.recommendations import get_historical_performance_boost
 from app.services.storage import get_storage_backend
 
@@ -126,6 +127,7 @@ async def browse_marketplace_slots(
 
 @router.get("/media", response_model=list[AssetModerationQueueItem])
 async def browse_approved_media(
+    user: User = Depends(require_influencer),
     db: AsyncSession = Depends(get_db),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[AssetModerationQueueItem]:
@@ -136,11 +138,16 @@ async def browse_approved_media(
     what brands are looking for, playable directly at original quality, not
     just a bell-icon mention.
     """
+    permitted_asset_ids = await accessible_asset_ids(db, influencer_id=user.id)
+    if not permitted_asset_ids:
+        return []
+
     stmt = (
         select(AdvertisementAsset, Advertisement, Brand)
         .join(Advertisement, AdvertisementAsset.advertisement_id == Advertisement.id)
         .join(Brand, Advertisement.brand_id == Brand.id)
         .where(
+            AdvertisementAsset.id.in_(permitted_asset_ids),
             AdvertisementAsset.status == AssetStatus.READY,
             AdvertisementAsset.moderation_status == AssetModerationStatus.APPROVED,
         )
@@ -168,6 +175,8 @@ async def browse_approved_media(
                 url=storage.url_for(asset.storage_key),
                 moderation_status=asset.moderation_status,
                 moderation_note=None,
+                distribution=asset.distribution,
+                recipient_influencer_ids=[],
                 renditions=[],
                 advertisement_id=advertisement.id,
                 advertisement_title=advertisement.title,

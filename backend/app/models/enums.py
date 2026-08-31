@@ -261,6 +261,14 @@ class AssetModerationStatus(str, enum.Enum):
     REJECTED = "rejected"
 
 
+class AssetDistribution(str, enum.Enum):
+    """Who can receive an approved brand toolkit asset."""
+
+    CAMPAIGN_ELIGIBLE = "campaign_eligible"
+    SPECIFIC_INFLUENCERS = "specific_influencers"
+    ALL_INFLUENCERS = "all_influencers"
+
+
 class NotificationType(str, enum.Enum):
     # Fired to every influencer once a brand's advertisement asset finishes
     # processing and is playable — lets influencers browse fresh brand creative
@@ -284,3 +292,10 @@ class NotificationType(str, enum.Enum):
 class NativePostStatus(str, enum.Enum):
     PUBLISHED = "published"
     ARCHIVED = "archived"
+
+
+class NativePostVisibility(str, enum.Enum):
+    PUBLIC = "public"
+    FOLLOWERS = "followers"
+    BRANDS_ONLY = "brands_only"
+    PRIVATE = "private"

@@ -2,11 +2,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
-from app.models.enums import AssetModerationStatus, AssetStatus, AssetType
+from app.models.enums import AssetDistribution, AssetModerationStatus, AssetStatus, AssetType
 from app.models.mixins import TimestampMixin, UUIDPk
 
 if TYPE_CHECKING:
@@ -56,7 +56,23 @@ class AdvertisementAsset(UUIDPk, TimestampMixin, Base):
     moderated_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), default=None)
     moderated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
+    distribution: Mapped[AssetDistribution] = mapped_column(
+        Enum(AssetDistribution, name="asset_distribution", values_callable=lambda e: [m.value for m in e]),
+        default=AssetDistribution.CAMPAIGN_ELIGIBLE,
+    )
+
     advertisement: Mapped["Advertisement"] = relationship(back_populates="assets")
     renditions: Mapped[list["AdvertisementRendition"]] = relationship(
         back_populates="asset", cascade="all, delete-orphan"
     )
+    recipients: Mapped[list["AssetShareRecipient"]] = relationship(cascade="all, delete-orphan")
+
+
+class AssetShareRecipient(UUIDPk, TimestampMixin, Base):
+    """An explicit influencer recipient selected by the asset's brand."""
+
+    __tablename__ = "asset_share_recipients"
+    __table_args__ = (UniqueConstraint("asset_id", "influencer_id", name="uq_asset_share_recipient"),)
+
+    asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("advertisement_assets.id", ondelete="CASCADE"), index=True)
+    influencer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("influencers.id", ondelete="CASCADE"), index=True)

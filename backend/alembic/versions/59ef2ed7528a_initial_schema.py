@@ -219,7 +219,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_influencers_username'), 'influencers', ['username'], unique=True)
     op.create_table('notifications',
     sa.Column('user_id', sa.Uuid(), nullable=False),
-    sa.Column('type', sa.Enum('new_brand_media', 'influencer_post_published', 'slot_claimed', 'payment_confirmed', 'asset_comment', name='notification_type'), nullable=False),
+    sa.Column('type', sa.Enum('new_brand_media', 'influencer_post_published', 'slot_claimed', 'payment_confirmed', 'asset_comment', 'social_follow', 'social_like', 'social_comment', name='notification_type'), nullable=False),
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('body', sa.Text(), nullable=False),
     sa.Column('link', sa.String(length=512), nullable=True),

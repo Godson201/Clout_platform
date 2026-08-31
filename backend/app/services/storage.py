@@ -122,3 +122,24 @@ async def read_with_limit(file: UploadFile, max_bytes: int) -> bytes:
             )
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+def validate_media_signature(*, media_type: str, content: bytes) -> None:
+    """Validate actual file signatures after upload, rather than trusting a
+    browser-controlled Content-Type or filename. SVG is intentionally excluded
+    from public social media because it can carry active content.
+    """
+    signatures = {
+        "image": (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"RIFF"),
+        "audio": (b"ID3", b"\xff\xfb", b"\xff\xf3", b"RIFF", b"ftyp"),
+        "video": (b"\x1aE\xdf\xa3",),
+    }
+    matched = any(content.startswith(signature) for signature in signatures[media_type])
+    # MP4/M4A containers place ftyp at offset 4; RIFF is further constrained to
+    # avoid accepting arbitrary bytes beginning with that marker.
+    if media_type in {"video", "audio"} and len(content) >= 12 and content[4:8] == b"ftyp":
+        matched = True
+    if content.startswith(b"RIFF") and len(content) >= 12 and content[8:12] not in {b"WEBP", b"WAVE"}:
+        matched = False
+    if not matched:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File contents do not match the declared media type")

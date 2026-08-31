@@ -5,7 +5,9 @@ import type {
   AdvertisementDetail,
   AdvertisementTemplate,
   AssetModerationQueueItem,
+  AssetDistribution,
   AssetType,
+  InfluencerAudienceOption,
 } from "@/types/advertisement";
 import type { Page } from "@/types/auth";
 
@@ -74,6 +76,24 @@ export async function uploadAdvertisementAsset(
 
 export async function deleteAdvertisementAsset(advertisementId: string, assetId: string): Promise<void> {
   await api.delete(`/advertisements/${advertisementId}/assets/${assetId}`);
+}
+
+export async function listInfluencerAudience(advertisementId: string): Promise<InfluencerAudienceOption[]> {
+  const { data } = await api.get<InfluencerAudienceOption[]>(`/advertisements/${advertisementId}/influencer-audience`);
+  return data;
+}
+
+export async function updateAssetDistribution(
+  advertisementId: string,
+  assetId: string,
+  distribution: AssetDistribution,
+  recipient_influencer_ids: string[] = [],
+): Promise<AdvertisementAsset> {
+  const { data } = await api.patch<AdvertisementAsset>(`/advertisements/${advertisementId}/assets/${assetId}/distribution`, {
+    distribution,
+    recipient_influencer_ids,
+  });
+  return data;
 }
 
 export async function listAssetsPendingModeration(): Promise<AssetModerationQueueItem[]> {

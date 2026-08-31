@@ -29,7 +29,7 @@ async def _create_and_approve_image_asset(client, *, brand_email: str, admin_ema
 
 
 class TestMarketplaceMedia:
-    async def test_influencer_sees_only_approved_media(self, client):
+    async def test_influencer_cannot_see_unassigned_brand_media(self, client):
         inf_token = await register_influencer_token(client, email="media-browser@example.com", username="mediabrowser")
 
         _, approved_id = await _create_and_approve_image_asset(
@@ -55,14 +55,10 @@ class TestMarketplaceMedia:
         assert resp.status_code == 200
         body = resp.json()
         ids = [item["id"] for item in body]
-        assert approved_id in ids
-        assert len(ids) == 1
-
-        item = next(item for item in body if item["id"] == approved_id)
-        assert item["brand_name"]
-        assert item["advertisement_title"] == "Approved ad"
-        assert item["url"] is not None
-        assert item["moderation_status"] == "approved"
+        # Approval alone is never a distribution grant. This influencer has no
+        # assigned slot and does not meet a live campaign's eligibility rules.
+        assert approved_id not in ids
+        assert ids == []
 
     async def test_brand_and_admin_cannot_use_influencer_only_route(self, client):
         brand_token = await _brand_token(client, email="media-brand-3@example.com")

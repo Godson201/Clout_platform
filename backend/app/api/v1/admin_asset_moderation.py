@@ -43,6 +43,10 @@ def _asset_to_read(asset: AdvertisementAsset) -> AdvertisementAssetRead:
         url=storage.url_for(asset.storage_key),
         moderation_status=asset.moderation_status,
         moderation_note=asset.moderation_note,
+        distribution=asset.distribution,
+        # Recipient identities are private to the brand; admins only need the
+        # selected distribution mode to review the asset.
+        recipient_influencer_ids=[],
         renditions=[
             AdvertisementRenditionRead(
                 id=r.id,

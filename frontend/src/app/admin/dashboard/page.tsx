@@ -191,8 +191,8 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Brand-uploaded video, photo, and audio waits for approval here before it&apos;s broadcast to every
-                influencer.
+                Brand-uploaded video, photo, and audio waits for approval here before it&apos;s shared with its selected
+                audience.
               </p>
               <Button size="sm" render={<Link href="/admin/media-review" />}>
                 Review queue

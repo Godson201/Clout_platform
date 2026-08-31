@@ -23,10 +23,12 @@ import { Label } from "@/components/ui/label";
 import {
   deleteAdvertisementAsset,
   getAdvertisement,
+  listInfluencerAudience,
   updateAdvertisement,
+  updateAssetDistribution,
   uploadAdvertisementAsset,
 } from "@/lib/advertisements-api";
-import type { AdvertisementAsset, AdvertisementDetail, AssetType } from "@/types/advertisement";
+import type { AdvertisementAsset, AdvertisementDetail, AssetDistribution, AssetType } from "@/types/advertisement";
 
 const ASSET_TYPES: { type: AssetType; label: string; accept: string }[] = [
   { type: "video", label: "Video", accept: "video/*" },
@@ -45,8 +47,19 @@ function isStillProcessing(ad: AdvertisementDetail | undefined): boolean {
 
 function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; advertisementId: string }) {
   const queryClient = useQueryClient();
+  const [distribution, setDistribution] = useState<AssetDistribution>(asset.distribution);
+  const [recipientIds, setRecipientIds] = useState<string[]>(asset.recipient_influencer_ids);
+  const { data: audience = [] } = useQuery({
+    queryKey: ["influencer-audience", advertisementId],
+    queryFn: () => listInfluencerAudience(advertisementId),
+    enabled: asset.moderation_status === "pending" && distribution === "specific_influencers",
+  });
   const deleteMutation = useMutation({
     mutationFn: () => deleteAdvertisementAsset(advertisementId, asset.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["advertisement", advertisementId] }),
+  });
+  const distributionMutation = useMutation({
+    mutationFn: () => updateAssetDistribution(advertisementId, asset.id, distribution, recipientIds),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["advertisement", advertisementId] }),
   });
 
@@ -79,6 +92,49 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
         )}
         {asset.moderation_status === "rejected" && asset.moderation_note && (
           <p className="text-sm text-destructive">Admin feedback: {asset.moderation_note}</p>
+        )}
+        {asset.moderation_status === "pending" && asset.asset_type !== "logo" && (
+          <div className="space-y-2 rounded-md border p-3">
+            <Label className="text-xs">Share after admin approval</Label>
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={distribution}
+              onChange={(event) => {
+                setDistribution(event.target.value as AssetDistribution);
+                setRecipientIds([]);
+              }}
+            >
+              <option value="campaign_eligible">Campaign-assigned or eligible influencers</option>
+              <option value="specific_influencers">Specific influencers</option>
+              <option value="all_influencers">All active influencers</option>
+            </select>
+            {distribution === "specific_influencers" && (
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded border p-2">
+                {audience.map((influencer) => (
+                  <label key={influencer.id} className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={recipientIds.includes(influencer.id)}
+                      onChange={() => setRecipientIds((current) => current.includes(influencer.id)
+                        ? current.filter((id) => id !== influencer.id)
+                        : [...current, influencer.id])}
+                    />
+                    {influencer.display_name} (@{influencer.username})
+                  </label>
+                ))}
+                {audience.length === 0 && <p className="text-xs text-muted-foreground">No active influencers found.</p>}
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={distributionMutation.isPending || (distribution === "specific_influencers" && recipientIds.length === 0)}
+              onClick={() => distributionMutation.mutate()}
+            >
+              {distributionMutation.isPending ? "Saving audience..." : "Save audience"}
+            </Button>
+            {distributionMutation.isError && <p className="text-xs text-destructive">Could not save the sharing audience.</p>}
+          </div>
         )}
         {asset.asset_type === "video" && asset.renditions.length > 0 && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

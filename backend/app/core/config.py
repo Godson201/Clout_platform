@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     MAX_AUDIO_UPLOAD_MB: int = 20
     MAX_DOCUMENT_UPLOAD_MB: int = 20
 
+    # Local/test uses "bypass" so contributors do not need a daemon. Production
+    # must use ClamAV's clamd INSTREAM protocol and fails startup otherwise.
+    MALWARE_SCANNER_MODE: str = "bypass"
+    CLAMAV_HOST: str = "localhost"
+    CLAMAV_PORT: int = 3310
+
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
     # True when there's no Redis/worker to talk to (local dev, tests): tasks run
@@ -175,6 +181,8 @@ class Settings(BaseSettings):
             raise ValueError("SOCIAL_OAUTH_MODE=mock is not permitted in production")
         if self.EMAIL_MODE == "mock":
             raise ValueError("EMAIL_MODE=mock is not permitted in production")
+        if self.MALWARE_SCANNER_MODE != "clamav":
+            raise ValueError("MALWARE_SCANNER_MODE=clamav is required in production")
         return self
 
 

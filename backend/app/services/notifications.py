@@ -52,6 +52,24 @@ async def notify_all_influencers(
     await db.commit()
 
 
+async def notify_users(
+    db: AsyncSession,
+    *,
+    user_ids: set[uuid.UUID],
+    type_: NotificationType,
+    title: str,
+    body: str,
+    link: str | None = None,
+    data: dict | None = None,
+) -> None:
+    """Send a notification only to an already-authorized audience."""
+    if not user_ids:
+        return
+    rows = [_row(user_id, type_, title, body, link, data or {}) for user_id in user_ids]
+    await db.execute(insert(Notification), rows)
+    await db.commit()
+
+
 async def list_notifications_for_user(db: AsyncSession, *, user_id: uuid.UUID, limit: int = 50) -> list[Notification]:
     result = await db.execute(
         select(Notification)

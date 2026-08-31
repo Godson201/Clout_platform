@@ -52,11 +52,12 @@ class TestAssetModerationGate:
         assert approve_resp.json()["moderation_status"] == "approved"
 
         feed = await client.get("/api/v1/notifications", headers={"Authorization": f"Bearer {inf_token}"})
-        types = [n["type"] for n in feed.json()]
-        assert "new_brand_media" in types
+        # Approval does not broadcast campaign material. This influencer has
+        # neither an assigned slot nor matching eligibility for a live campaign.
+        assert feed.json() == []
 
         unread = await client.get("/api/v1/notifications/unread-count", headers={"Authorization": f"Bearer {inf_token}"})
-        assert unread.json()["unread_count"] == 1
+        assert unread.json()["unread_count"] == 0
 
     async def test_video_notifies_influencers_only_once_approved(self, client, tiny_video_bytes):
         inf_token = await register_influencer_token(client, email="notify-inf-2@example.com", username="notifyinf2")
@@ -79,9 +80,7 @@ class TestAssetModerationGate:
         )
 
         feed = await client.get("/api/v1/notifications", headers={"Authorization": f"Bearer {inf_token}"})
-        notif = next(n for n in feed.json() if n["type"] == "new_brand_media")
-        assert notif["data"]["asset_type"] == "video"
-        assert notif["link"] == "/influencer/marketplace?tab=media"
+        assert feed.json() == []
 
     async def test_rejected_asset_never_notifies_and_shows_reason_to_brand(self, client):
         inf_token = await register_influencer_token(client, email="notify-inf-3@example.com", username="notifyinf3")
@@ -149,7 +148,7 @@ class TestAssetModerationGate:
         resp = await client.get("/api/v1/admin/asset-moderation", headers={"Authorization": f"Bearer {brand_token}"})
         assert resp.status_code == 403
 
-    async def test_mark_read_and_mark_all_read(self, client):
+    async def test_unassigned_media_creates_no_notifications(self, client):
         inf_token = await register_influencer_token(client, email="notify-inf-7@example.com", username="notifyinf7")
         brand_token = await _brand_token(client, email="notify-brand-7@example.com")
         admin_token = await _make_admin_token(email="moderation-admin-7@clout.local")
@@ -161,15 +160,7 @@ class TestAssetModerationGate:
         )
 
         feed = await client.get("/api/v1/notifications", headers={"Authorization": f"Bearer {inf_token}"})
-        notif_id = feed.json()[0]["id"]
-
-        read_resp = await client.post(
-            f"/api/v1/notifications/{notif_id}/read", headers={"Authorization": f"Bearer {inf_token}"}
-        )
-        assert read_resp.status_code == 204
-
-        unread = await client.get("/api/v1/notifications/unread-count", headers={"Authorization": f"Bearer {inf_token}"})
-        assert unread.json()["unread_count"] == 0
+        assert feed.json() == []
 
         for filename in ("photo2.jpg", "photo3.jpg"):
             asset_id = await _upload_image(client, brand_token, ad_id, filename=filename)
@@ -177,11 +168,6 @@ class TestAssetModerationGate:
                 f"/api/v1/admin/asset-moderation/{asset_id}/approve", headers={"Authorization": f"Bearer {admin_token}"}
             )
 
-        unread = await client.get("/api/v1/notifications/unread-count", headers={"Authorization": f"Bearer {inf_token}"})
-        assert unread.json()["unread_count"] == 2
-
-        mark_all_resp = await client.post("/api/v1/notifications/read-all", headers={"Authorization": f"Bearer {inf_token}"})
-        assert mark_all_resp.status_code == 204
         unread = await client.get("/api/v1/notifications/unread-count", headers={"Authorization": f"Bearer {inf_token}"})
         assert unread.json()["unread_count"] == 0
 

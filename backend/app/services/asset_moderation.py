@@ -9,8 +9,10 @@ from sqlalchemy.orm import selectinload
 from app.models.advertisement import Advertisement
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.brand import Brand
-from app.models.enums import AssetModerationStatus, AssetStatus, NotificationType
-from app.services.notifications import notify_all_influencers
+from app.models.enums import AssetModerationStatus, AssetStatus, NotificationType, UserType
+from app.models.user import User
+from app.services.campaign_media_access import accessible_asset_ids
+from app.services.notifications import notify_users
 
 # LOGO is brand housekeeping, not campaign creative — excluded so influencers
 # aren't notified about a brand simply uploading its logo.
@@ -20,7 +22,7 @@ _NOTIFIABLE_ASSET_TYPES = {"video", "image", "audio", "voiceover"}
 async def list_assets_pending_review(db: AsyncSession) -> list[AdvertisementAsset]:
     result = await db.execute(
         select(AdvertisementAsset)
-        .options(selectinload(AdvertisementAsset.renditions))
+        .options(selectinload(AdvertisementAsset.renditions), selectinload(AdvertisementAsset.recipients))
         .where(
             AdvertisementAsset.status == AssetStatus.READY,
             AdvertisementAsset.moderation_status == AssetModerationStatus.PENDING,
@@ -33,7 +35,7 @@ async def list_assets_pending_review(db: AsyncSession) -> list[AdvertisementAsse
 async def get_asset_for_admin(db: AsyncSession, asset_id: uuid.UUID) -> AdvertisementAsset:
     result = await db.execute(
         select(AdvertisementAsset)
-        .options(selectinload(AdvertisementAsset.renditions))
+        .options(selectinload(AdvertisementAsset.renditions), selectinload(AdvertisementAsset.recipients))
         .where(AdvertisementAsset.id == asset_id)
     )
     asset = result.scalar_one_or_none()
@@ -85,8 +87,17 @@ async def _notify_influencers_of_approved_media(db: AsyncSession, *, asset: Adve
     advertisement = await db.get(Advertisement, asset.advertisement_id)
     brand = await db.get(Brand, advertisement.brand_id) if advertisement else None
     brand_name = brand.business_name if brand else "A brand"
-    await notify_all_influencers(
+    influencer_ids = (
+        await db.execute(select(User.id).where(User.user_type == UserType.INFLUENCER, User.is_active.is_(True)))
+    ).scalars().all()
+    recipients = {
+        influencer_id
+        for influencer_id in influencer_ids
+        if asset.id in await accessible_asset_ids(db, influencer_id=influencer_id)
+    }
+    await notify_users(
         db,
+        user_ids=recipients,
         type_=NotificationType.NEW_BRAND_MEDIA,
         title=f"{brand_name} shared new {asset.asset_type.value} content",
         body=f'New {asset.asset_type.value} added to "{advertisement.title if advertisement else "an advertisement"}" '
