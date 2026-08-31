@@ -107,12 +107,10 @@ function ChatThread({ conversation }: { conversation: Conversation }) {
   const queryClient = useQueryClient();
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fileInputs = {
-    document: useRef<HTMLInputElement>(null),
-    audio: useRef<HTMLInputElement>(null),
-    voice_note: useRef<HTMLInputElement>(null),
-    video: useRef<HTMLInputElement>(null),
-  } as const;
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const voiceNoteInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages } = useQuery({
     queryKey: ["conversations", conversation.id, "messages"],
@@ -184,20 +182,20 @@ function ChatThread({ conversation }: { conversation: Conversation }) {
 
       <div className="space-y-2 border-t p-3">
         <div className="flex items-center gap-1">
-          <input ref={fileInputs.document} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => handleFileChange("document", e)} />
-          <input ref={fileInputs.audio} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileChange("audio", e)} />
-          <input ref={fileInputs.voice_note} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileChange("voice_note", e)} />
-          <input ref={fileInputs.video} type="file" accept="video/*" className="hidden" onChange={(e) => handleFileChange("video", e)} />
-          <Button size="icon-xs" variant="ghost" title="Attach document" onClick={() => fileInputs.document.current?.click()}>
+          <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => handleFileChange("document", e)} />
+          <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileChange("audio", e)} />
+          <input ref={voiceNoteInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileChange("voice_note", e)} />
+          <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleFileChange("video", e)} />
+          <Button size="icon-xs" variant="ghost" title="Attach document" onClick={() => documentInputRef.current?.click()}>
             <Paperclip className="size-4" />
           </Button>
-          <Button size="icon-xs" variant="ghost" title="Send audio file" onClick={() => fileInputs.audio.current?.click()}>
+          <Button size="icon-xs" variant="ghost" title="Send audio file" onClick={() => audioInputRef.current?.click()}>
             <Music className="size-4" />
           </Button>
-          <Button size="icon-xs" variant="ghost" title="Send voice note" onClick={() => fileInputs.voice_note.current?.click()}>
+          <Button size="icon-xs" variant="ghost" title="Send voice note" onClick={() => voiceNoteInputRef.current?.click()}>
             <Mic className="size-4" />
           </Button>
-          <Button size="icon-xs" variant="ghost" title="Send video" onClick={() => fileInputs.video.current?.click()}>
+          <Button size="icon-xs" variant="ghost" title="Send video" onClick={() => videoInputRef.current?.click()}>
             <Video className="size-4" />
           </Button>
           {sendAttachment.isPending && <span className="text-xs text-muted-foreground">Uploading...</span>}

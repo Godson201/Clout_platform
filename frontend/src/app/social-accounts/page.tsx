@@ -95,12 +95,12 @@ export default function SocialAccountsPage() {
           <p className="text-sm text-muted-foreground">
             Connect TikTok, Instagram, Facebook, or YouTube to post campaign ads directly and track performance.
             Auto-posting and metrics only work on platforms CLOUT has been granted real API access for — everywhere
-            else, posting falls back to a manual/assisted flow where you publish yourself and submit the post's URL.
+            else, posting falls back to a manual/assisted flow where you publish yourself and submit the post&apos;s URL.
           </p>
           <SocialAccountsManager />
           {userType === "influencer" && (
             <p className="text-xs text-muted-foreground">
-              Once connected, use a claimed slot's page to post your campaign ad with this account.
+              Once connected, use a claimed slot&apos;s page to post your campaign ad with this account.
             </p>
           )}
         </div>

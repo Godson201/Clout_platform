@@ -36,6 +36,7 @@ from app.models.refund import Refund  # noqa: F401
 from app.models.social_account import SocialAccount  # noqa: F401
 from app.models.social_oauth_state import SocialOAuthState  # noqa: F401
 from app.models.social_post import SocialPost  # noqa: F401
+from app.models.social_feed import Follow, NativePost, NativePostComment, NativePostLike, NativePostMedia, NativePostSave  # noqa: F401
 from app.models.transaction import Transaction  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.view_rate import ViewRate  # noqa: F401

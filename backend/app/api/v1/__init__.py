@@ -25,6 +25,7 @@ from app.api.v1 import (
     profile_highlights,
     slots,
     social_accounts,
+    social_feed,
     templates,
     users,
 )
@@ -51,6 +52,7 @@ api_router.include_router(slots.router)
 api_router.include_router(payments.router)
 api_router.include_router(payouts.router)
 api_router.include_router(social_accounts.router)
+api_router.include_router(social_feed.router)
 api_router.include_router(messaging.router)
 api_router.include_router(contracts.router)
 api_router.include_router(announcements.router)

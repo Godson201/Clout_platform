@@ -192,6 +192,8 @@ function AdEditor({ advertisementId }: { advertisementId: string }) {
 
   useEffect(() => {
     if (form === null && ad) {
+      // The query resolves asynchronously; keep the editable draft stable once initialized.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         title: ad.title,
         script_text: ad.script_text ?? "",

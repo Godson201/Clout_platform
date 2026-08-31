@@ -276,3 +276,11 @@ class NotificationType(str, enum.Enum):
     # Fired to a brand when an admin leaves feedback on one of their draft ad
     # assets (see AssetComment) — not fired for the brand's own comments.
     ASSET_COMMENT = "asset_comment"
+    SOCIAL_FOLLOW = "social_follow"
+    SOCIAL_LIKE = "social_like"
+    SOCIAL_COMMENT = "social_comment"
+
+
+class NativePostStatus(str, enum.Enum):
+    PUBLISHED = "published"
+    ARCHIVED = "archived"

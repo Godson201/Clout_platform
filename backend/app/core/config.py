@@ -1,7 +1,7 @@
 from functools import lru_cache
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -155,6 +155,27 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "CLOUT"
     EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 60 * 24
     PASSWORD_RESET_EXPIRE_MINUTES: int = 60
+
+    @model_validator(mode="after")
+    def _validate_production_security(self) -> "Settings":
+        """Reject configurations that would silently expose mock or insecure
+        integrations after a production deployment.
+        """
+        if self.ENVIRONMENT != "production":
+            return self
+
+        insecure_values = {"", "change-me-to-a-long-random-value", "test-secret-key-not-for-production"}
+        if self.JWT_SECRET_KEY in insecure_values or len(self.JWT_SECRET_KEY) < 32:
+            raise ValueError("JWT_SECRET_KEY must be a unique value of at least 32 characters in production")
+        if self.PAYMENT_PROVIDER_MODE == "mock":
+            raise ValueError("PAYMENT_PROVIDER_MODE=mock is not permitted in production")
+        if self.PAYMENT_PROVIDER_MODE == "momo" and not self.MOMO_WEBHOOK_SECRET:
+            raise ValueError("MOMO_WEBHOOK_SECRET is required when MTN MoMo is enabled in production")
+        if self.SOCIAL_OAUTH_MODE == "mock":
+            raise ValueError("SOCIAL_OAUTH_MODE=mock is not permitted in production")
+        if self.EMAIL_MODE == "mock":
+            raise ValueError("EMAIL_MODE=mock is not permitted in production")
+        return self
 
 
 @lru_cache

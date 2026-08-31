@@ -53,8 +53,8 @@ function WalletCard() {
           </p>
         )}
         <p className="text-sm text-muted-foreground">
-          Earnings are credited here once a brand's admin settles a completed slot. Withdraw to MTN MoMo minus the
-          platform's payout fee.
+          Earnings are credited here once a brand&apos;s admin settles a completed slot. Withdraw to MTN MoMo minus the
+          platform&apos;s payout fee.
         </p>
 
         <div className="grid grid-cols-2 gap-3">

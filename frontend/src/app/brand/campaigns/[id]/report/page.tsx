@@ -1,5 +1,8 @@
 "use client";
 
+/* Natural-language explanatory copy intentionally contains contractions. */
+/* eslint-disable react/no-unescaped-entities */
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import type { AxiosError } from "axios";

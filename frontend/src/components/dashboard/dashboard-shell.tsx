@@ -61,6 +61,7 @@ interface NavItem {
 const NAV_ITEMS: Record<UserType, NavItem[]> = {
   brand: [
     { href: "/brand/dashboard", label: "Overview", icon: Gauge },
+    { href: "/social", label: "Clout Feed", icon: Sparkles },
     { href: "/brand/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/brand/campaigns/new", label: "Create Campaign", icon: PlusCircle },
     { href: "/brand/toolkit", label: "Ad Toolkit", icon: Wand2 },
@@ -73,6 +74,7 @@ const NAV_ITEMS: Record<UserType, NavItem[]> = {
   ],
   influencer: [
     { href: "/influencer/dashboard", label: "Overview", icon: Gauge },
+    { href: "/social", label: "Clout Feed", icon: Sparkles },
     { href: "/influencer/marketplace", label: "Marketplace", icon: Store },
     { href: "/influencer/slots", label: "My Slots", icon: ListChecks },
     { href: "/influencer/earnings", label: "Earnings", icon: WalletIcon },

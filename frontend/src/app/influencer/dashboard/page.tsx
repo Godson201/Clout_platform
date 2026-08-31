@@ -231,7 +231,7 @@ function InfluencerOverview() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Connect TikTok, Instagram, Facebook, or YouTube so you can post claimed slots' ads and track performance.
+            Connect TikTok, Instagram, Facebook, or YouTube so you can post claimed slots&apos; ads and track performance.
           </p>
           <Button size="sm" render={<Link href="/social-accounts" />}>
             Manage accounts

@@ -1,5 +1,8 @@
 "use client";
 
+/* Natural-language explanatory copy intentionally contains contractions. */
+/* eslint-disable react/no-unescaped-entities */
+
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";

@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Manually settle a claimed slot's escrowed budget until Phase 6 automates verified-view-based
+                Manually settle a claimed slot&apos;s escrowed budget until Phase 6 automates verified-view-based
                 settlement.
               </p>
               <Button size="sm" render={<Link href="/admin/settlement" />}>
@@ -191,7 +191,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Brand-uploaded video, photo, and audio waits for approval here before it's broadcast to every
+                Brand-uploaded video, photo, and audio waits for approval here before it&apos;s broadcast to every
                 influencer.
               </p>
               <Button size="sm" render={<Link href="/admin/media-review" />}>
