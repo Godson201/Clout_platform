@@ -41,7 +41,10 @@ async def _post_read(db: AsyncSession, post: NativePost, viewer_id: uuid.UUID | 
     media_rows = (await db.execute(select(NativePostMedia).where(NativePostMedia.post_id == post.id).order_by(NativePostMedia.created_at.asc()))).scalars().all()
     storage = get_storage_backend()
     tags = (await db.execute(select(Hashtag.name).join(NativePostHashtag).where(NativePostHashtag.post_id == post.id))).scalars().all()
-    visible_media = [m for m in media_rows if m.processing_status == "ready"]
+    # A validated source video is safe to play immediately.  While FFmpeg is
+    # preparing the platform rendition, expose that source with its processing
+    # state instead of hiding the post's media until the worker completes.
+    visible_media = [m for m in media_rows if m.processing_status != "failed"]
     return SocialPostRead(id=post.id, body=post.body, created_at=post.created_at, author=await _author(db, author), like_count=likes, comment_count=comments, liked_by_me=liked, saved_by_me=saved, media=[SocialMediaRead(id=m.id, media_type=m.media_type, mime_type=m.mime_type, url=storage.url_for(m.processed_storage_key or m.storage_key), processing_status=m.processing_status, thumbnail_url=storage.url_for(m.thumbnail_storage_key) if m.thumbnail_storage_key else None) for m in visible_media], hashtags=tags, repost_of_id=post.repost_of_id, visibility=post.visibility)
 
 
