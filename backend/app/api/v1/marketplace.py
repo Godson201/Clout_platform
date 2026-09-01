@@ -181,6 +181,8 @@ async def browse_approved_media(
                 advertisement_id=advertisement.id,
                 advertisement_title=advertisement.title,
                 brand_name=brand.business_name,
+                campaign_brief=advertisement.script_text,
+                cta_text=advertisement.cta_text,
             )
         )
     return items

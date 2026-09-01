@@ -97,6 +97,8 @@ class AssetModerationQueueItem(AdvertisementAssetRead):
     advertisement_id: uuid.UUID
     advertisement_title: str
     brand_name: str
+    campaign_brief: str | None = None
+    cta_text: str | None = None
 
 
 class RejectAssetRequest(BaseModel):

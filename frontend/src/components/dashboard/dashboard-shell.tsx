@@ -5,6 +5,7 @@ import {
   Bell,
   Clapperboard,
   FileSignature,
+  Flag,
   Gauge,
   History,
   ImageIcon,
@@ -87,6 +88,7 @@ const NAV_ITEMS: Record<UserType, NavItem[]> = {
   admin: [
     { href: "/admin/dashboard", label: "Overview", icon: Gauge },
     { href: "/admin/media-review", label: "Media Review", icon: ImageIcon },
+    { href: "/admin/social-moderation", label: "Social Moderation", icon: Flag },
     { href: "/admin/contracts", label: "Contracts", icon: FileSignature },
     { href: "/admin/settlement", label: "Settlement", icon: Scale },
     { href: "/admin/activity-logs", label: "Activity Log", icon: History },

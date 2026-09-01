@@ -7,7 +7,7 @@ from app.core.deps import require_admin
 from app.models.enums import NativePostStatus
 from app.models.social_feed import NativePost, NativePostReport
 from app.models.user import User
-from app.schemas.social_moderation import ModerationDecision, SocialReportQueueItem
+from app.schemas.social_moderation import ArchivedSocialPost, ModerationDecision, SocialReportQueueItem
 from app.services.audit import write_audit_log
 
 router = APIRouter(prefix="/admin/social-moderation", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -16,6 +16,12 @@ router = APIRouter(prefix="/admin/social-moderation", tags=["admin"], dependenci
 async def reports(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(select(NativePostReport, NativePost).join(NativePost).where(NativePostReport.resolved.is_(False)).order_by(NativePostReport.created_at.asc()))).all()
     return [SocialReportQueueItem(report_id=r.id, post_id=p.id, author_id=p.author_id, body=p.body, reason=r.reason, details=r.details, created_at=r.created_at) for r, p in rows]
+
+
+@router.get("/posts/archived", response_model=list[ArchivedSocialPost])
+async def archived_posts(db: AsyncSession = Depends(get_db)):
+    posts = (await db.execute(select(NativePost).where(NativePost.status == NativePostStatus.ARCHIVED).order_by(NativePost.updated_at.desc()))).scalars().all()
+    return [ArchivedSocialPost(post_id=post.id, author_id=post.author_id, body=post.body, updated_at=post.updated_at) for post in posts]
 
 @router.post("/reports/{report_id}/resolve", status_code=204)
 async def resolve(report_id: uuid.UUID, payload: ModerationDecision, admin: User = Depends(require_admin), db: AsyncSession = Depends(get_db)):

@@ -61,6 +61,8 @@ export interface AssetModerationQueueItem extends AdvertisementAsset {
   advertisement_id: string;
   advertisement_title: string;
   brand_name: string;
+  campaign_brief: string | null;
+  cta_text: string | null;
 }
 
 export interface Advertisement {

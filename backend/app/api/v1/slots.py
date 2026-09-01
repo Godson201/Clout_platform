@@ -1,28 +1,37 @@
+import os
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from starlette.concurrency import run_in_threadpool
 
 from app.core.db import get_db
 from app.core.deps import require_influencer
 from app.models.advertisement import Advertisement
 from app.models.brand import Brand
 from app.models.campaign import Campaign
+from app.models.campaign_creative import CampaignCreative
 from app.models.campaign_slot import CampaignSlot
 from app.models.comment import Comment
+from app.models.enums import NativePostVisibility, SlotStatus
 from app.models.post_metric_snapshot import PostMetricSnapshot
 from app.models.social_account import SocialAccount
 from app.models.social_post import SocialPost
+from app.models.social_feed import NativePost, NativePostMedia
 from app.models.user import User
 from app.schemas.campaign_slot import CampaignSlotRead, MySlotRead
+from app.schemas.campaign_creative import CampaignCreativePublicationRead, CampaignCreativeRead, PublishCampaignCreativeRequest
 from app.schemas.comment import CommentRead
 from app.schemas.social_post import CreatePostRequest, PostMetricSnapshotRead, SocialPostRead, SubmitPostUrlRequest
 from app.services.slot_claim import claim_slot
 from app.services.social_comments import poll_post_comments
 from app.services.social_metrics import poll_post_metrics
 from app.services.social_posting import create_post_for_slot, submit_manual_post_url
+from app.services.malware_scanning import scan_upload
+from app.services.storage import get_storage_backend, read_with_limit, validate_media_signature
+from app.services.video_processing import VideoProcessingError, probe_video
 
 router = APIRouter(prefix="/slots", tags=["slots"], dependencies=[Depends(require_influencer)])
 
@@ -44,6 +53,21 @@ async def _get_own_post(db: AsyncSession, user: User, slot_id: uuid.UUID) -> tup
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This slot has no post yet")
     return slot, post
+
+
+def _creative_read(creative: CampaignCreative) -> CampaignCreativeRead:
+    return CampaignCreativeRead(
+        id=creative.id,
+        campaign_slot_id=creative.campaign_slot_id,
+        influencer_id=creative.influencer_id,
+        original_filename=creative.original_filename,
+        mime_type=creative.mime_type,
+        duration_seconds=creative.duration_seconds,
+        native_post_id=creative.native_post_id,
+        url=get_storage_backend().url_for(creative.storage_key),
+        created_at=creative.created_at,
+        updated_at=creative.updated_at,
+    )
 
 
 @router.post("/{slot_id}/claim", response_model=CampaignSlotRead)
@@ -89,6 +113,143 @@ async def list_my_slots(
         )
         for slot, campaign, advertisement, brand in rows
     ]
+
+
+@router.get("/{slot_id}/creative", response_model=CampaignCreativeRead)
+async def get_slot_creative(
+    slot_id: uuid.UUID, user: User = Depends(require_influencer), db: AsyncSession = Depends(get_db)
+) -> CampaignCreativeRead:
+    slot = await _get_own_slot(db, user, slot_id)
+    creative = (
+        await db.execute(select(CampaignCreative).where(CampaignCreative.campaign_slot_id == slot.id))
+    ).scalar_one_or_none()
+    if creative is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No saved creative for this slot")
+    return _creative_read(creative)
+
+
+@router.post("/{slot_id}/creative", response_model=CampaignCreativeRead, status_code=status.HTTP_201_CREATED)
+async def save_slot_creative(
+    slot_id: uuid.UUID,
+    file: UploadFile = File(...),
+    user: User = Depends(require_influencer),
+    db: AsyncSession = Depends(get_db),
+) -> CampaignCreativeRead:
+    """Save the influencer's finished native video after server-side checks.
+
+    Browser duration metadata is useful feedback only; ffprobe is the source of
+    truth so a crafted upload cannot bypass the 30-second campaign limit.
+    """
+    slot = await _get_own_slot(db, user, slot_id)
+    if slot.status != SlotStatus.CLAIMED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only claimed slots can have a draft creative")
+
+    content_type = file.content_type or ""
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in {".mp4", ".mov", ".webm"} or not content_type.startswith("video/"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Upload an MP4, MOV, or WebM video")
+    content = await read_with_limit(file, 200 * 1024 * 1024)
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty video uploads are not allowed")
+    validate_media_signature(media_type="video", content=content)
+    scan_upload(content)
+
+    storage = get_storage_backend()
+    storage_key = f"campaign-creatives/{slot.id}/{uuid.uuid4()}{ext}"
+    storage.save(storage_key, content)
+    try:
+        probe = await run_in_threadpool(probe_video, storage.local_path(storage_key))
+    except VideoProcessingError as exc:
+        storage.delete(storage_key)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The uploaded file is not a readable video") from exc
+    if probe.duration_seconds <= 0 or probe.duration_seconds > 30:
+        storage.delete(storage_key)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Finished campaign videos must be between 1 and 30 seconds")
+
+    existing = (
+        await db.execute(select(CampaignCreative).where(CampaignCreative.campaign_slot_id == slot.id))
+    ).scalar_one_or_none()
+    old_storage_key = existing.storage_key if existing else None
+    if existing is None:
+        creative = CampaignCreative(
+            campaign_slot_id=slot.id,
+            influencer_id=user.id,
+            storage_key=storage_key,
+            original_filename=file.filename or "creative-video",
+            mime_type=content_type,
+            duration_seconds=probe.duration_seconds,
+        )
+        db.add(creative)
+    else:
+        creative = existing
+        creative.storage_key = storage_key
+        creative.original_filename = file.filename or "creative-video"
+        creative.mime_type = content_type
+        creative.duration_seconds = probe.duration_seconds
+    try:
+        await db.commit()
+        await db.refresh(creative)
+    except Exception:
+        await db.rollback()
+        storage.delete(storage_key)
+        raise
+    if old_storage_key and old_storage_key != storage_key:
+        storage.delete(old_storage_key)
+    return _creative_read(creative)
+
+
+@router.post("/{slot_id}/creative/publish", response_model=CampaignCreativePublicationRead, status_code=status.HTTP_201_CREATED)
+async def publish_slot_creative_to_clout(
+    slot_id: uuid.UUID,
+    payload: PublishCampaignCreativeRequest,
+    user: User = Depends(require_influencer),
+    db: AsyncSession = Depends(get_db),
+) -> CampaignCreativePublicationRead:
+    """Publish a saved campaign creative as a public, playable Clout post.
+
+    This deliberately does not advance the external campaign-post workflow:
+    native Clout visibility and delivery to a connected external account are
+    different events, and each needs an honest status for brands and creators.
+    """
+    slot = await _get_own_slot(db, user, slot_id)
+    if slot.status != SlotStatus.CLAIMED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only claimed slots can publish a creative")
+    creative = (
+        await db.execute(select(CampaignCreative).where(CampaignCreative.campaign_slot_id == slot.id))
+    ).scalar_one_or_none()
+    if creative is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Save a finished campaign creative before publishing")
+    if creative.native_post_id:
+        post = await db.get(NativePost, creative.native_post_id)
+        if post is not None:
+            return CampaignCreativePublicationRead(native_post_id=post.id, caption=post.body, feed_path="/social")
+
+    post = NativePost(author_id=user.id, body=payload.caption.strip(), visibility=NativePostVisibility.PUBLIC)
+    db.add(post)
+    await db.flush()
+
+    storage = get_storage_backend()
+    ext = os.path.splitext(creative.original_filename)[1].lower() or ".mp4"
+    public_storage_key = f"social-campaigns/{post.id}/video/{uuid.uuid4()}{ext}"
+    try:
+        source = await run_in_threadpool(storage.read, creative.storage_key)
+        await run_in_threadpool(storage.save, public_storage_key, source)
+        db.add(
+            NativePostMedia(
+                post_id=post.id,
+                storage_key=public_storage_key,
+                mime_type=creative.mime_type,
+                media_type="video",
+                processing_status="ready",
+            )
+        )
+        creative.native_post_id = post.id
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        storage.delete(public_storage_key)
+        raise
+    return CampaignCreativePublicationRead(native_post_id=post.id, caption=post.body, feed_path="/social")
 
 
 @router.post("/{slot_id}/post", response_model=SocialPostRead, status_code=status.HTTP_201_CREATED)

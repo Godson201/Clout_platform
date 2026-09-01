@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# A newer main commit supersedes an older quality run; do not leave obsolete
+# checks consuming runners or looking like a deployment blocker.
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -17,10 +23,17 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m pytest -q
-      - run: python -m alembic upgrade head
+      - name: Verify migrations from an empty database
+        run: python -m alembic upgrade head
         env:
           DATABASE_URL: sqlite+aiosqlite:///./ci-migrations.db
+          JWT_SECRET_KEY: ci-only-secret-key-that-is-long-enough
+          SOCIAL_TOKEN_ENCRYPTION_KEY: zHz0jfvz0jz3aRXKz6nZ0J8qgq7z5r1v2yV3wq9F1lE=
+      - name: Run backend tests in an isolated test database
+        run: python -m pytest -q
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          ENVIRONMENT: test
           JWT_SECRET_KEY: ci-only-secret-key-that-is-long-enough
           SOCIAL_TOKEN_ENCRYPTION_KEY: zHz0jfvz0jz3aRXKz6nZ0J8qgq7z5r1v2yV3wq9F1lE=
 
@@ -38,4 +51,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm run test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - run: npm run build

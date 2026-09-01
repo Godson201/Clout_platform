@@ -2,7 +2,7 @@ import { api } from "@/lib/api";
 import type { CampaignAnalytics } from "@/types/analytics";
 import type { AssetModerationQueueItem } from "@/types/advertisement";
 import type { Page } from "@/types/auth";
-import type { Campaign, CampaignDetail, MarketplaceSlot, MySlot } from "@/types/campaign";
+import type { Campaign, CampaignCreative, CampaignDetail, MarketplaceSlot, MySlot } from "@/types/campaign";
 import type { CampaignFundingResponse, Payment } from "@/types/payment";
 import type { CampaignReport } from "@/types/report";
 
@@ -86,5 +86,22 @@ export async function browseApprovedMedia(): Promise<AssetModerationQueueItem[]>
 
 export async function listMySlots(): Promise<MySlot[]> {
   const { data } = await api.get<MySlot[]>("/slots/mine");
+  return data;
+}
+
+export async function getSlotCreative(slotId: string): Promise<CampaignCreative> {
+  const { data } = await api.get<CampaignCreative>(`/slots/${slotId}/creative`);
+  return data;
+}
+
+export async function uploadSlotCreative(slotId: string, file: File): Promise<CampaignCreative> {
+  const body = new FormData();
+  body.append("file", file);
+  const { data } = await api.post<CampaignCreative>(`/slots/${slotId}/creative`, body);
+  return data;
+}
+
+export async function publishSlotCreative(slotId: string, caption: string): Promise<{ native_post_id: string; caption: string; feed_path: string }> {
+  const { data } = await api.post<{ native_post_id: string; caption: string; feed_path: string }>(`/slots/${slotId}/creative/publish`, { caption });
   return data;
 }

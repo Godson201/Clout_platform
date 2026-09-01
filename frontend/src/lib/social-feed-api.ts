@@ -1,10 +1,13 @@
 import { api } from "@/lib/api";
 
 export type PostVisibility = "public" | "followers" | "brands_only" | "private";
-export interface SocialPost { id: string; body: string; created_at: string; author: { id: string; name: string; username?: string | null; picture_url?: string | null }; like_count: number; comment_count: number; liked_by_me: boolean; saved_by_me: boolean; visibility: PostVisibility; media: { id: string; media_type: string; mime_type: string; url: string; processing_status: "pending" | "processing" | "ready" | "failed" }[] }
+export interface SocialPost { id: string; body: string; created_at: string; author: { id: string; name: string; username?: string | null; picture_url?: string | null }; like_count: number; comment_count: number; liked_by_me: boolean; saved_by_me: boolean; visibility: PostVisibility; hashtags?: string[]; media: { id: string; media_type: string; mime_type: string; url: string; processing_status: "pending" | "processing" | "ready" | "failed" }[] }
 export interface SocialComment { id: string; body: string; created_at: string; author: SocialPost["author"] }
 
 export async function listFeed() { const { data } = await api.get<SocialPost[]>("/social/feed"); return data; }
+export async function listForYouFeed() { const { data } = await api.get<SocialPost[]>("/social/for-you"); return data; }
+export async function listTrendingPosts() { const { data } = await api.get<SocialPost[]>("/social/trending"); return data; }
+export async function listHashtagPosts(name: string) { const { data } = await api.get<SocialPost[]>(`/social/hashtags/${encodeURIComponent(name)}`); return data; }
 export async function createPost(body: string, visibility: PostVisibility) { const { data } = await api.post<SocialPost>("/social/posts", { body, visibility }); return data; }
 export async function togglePostLike(id: string) { const { data } = await api.post<SocialPost>(`/social/posts/${id}/like`); return data; }
 export async function togglePostSave(id: string) { const { data } = await api.post<SocialPost>(`/social/posts/${id}/save`); return data; }

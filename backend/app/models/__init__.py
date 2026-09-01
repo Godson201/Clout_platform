@@ -14,6 +14,7 @@ from app.models.asset_like import AssetLike  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.brand import Brand  # noqa: F401
 from app.models.campaign import Campaign  # noqa: F401
+from app.models.campaign_creative import CampaignCreative  # noqa: F401
 from app.models.campaign_report import CampaignReport  # noqa: F401
 from app.models.campaign_slot import CampaignSlot  # noqa: F401
 from app.models.comment import Comment  # noqa: F401
@@ -54,6 +55,7 @@ __all__ = [
     "AuditLog",
     "Brand",
     "Campaign",
+    "CampaignCreative",
     "CampaignReport",
     "CampaignSlot",
     "Comment",

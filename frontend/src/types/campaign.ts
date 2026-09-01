@@ -89,3 +89,16 @@ export interface MySlot extends CampaignSlot {
   brand_name: string;
   advertisement_title: string;
 }
+
+export interface CampaignCreative {
+  id: string;
+  campaign_slot_id: string;
+  influencer_id: string;
+  original_filename: string;
+  mime_type: string;
+  duration_seconds: number;
+  native_post_id: string | null;
+  url: string;
+  created_at: string;
+  updated_at: string;
+}

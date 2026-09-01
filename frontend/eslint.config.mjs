@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Dedicated build output created only while running Playwright locally.
+    ".next-e2e/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

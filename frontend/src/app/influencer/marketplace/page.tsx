@@ -189,6 +189,11 @@ function BrandMediaGallery() {
             <CardContent className="space-y-2">
               <AssetPreview asset={item} />
               <p className="text-xs text-muted-foreground">{assetCaption(item)}</p>
+              {item.campaign_brief && <p className="text-sm">{item.campaign_brief}</p>}
+              {item.cta_text && <p className="text-xs font-medium">Brand asks: {item.cta_text}</p>}
+              <Button size="sm" className="w-full" onClick={() => window.location.assign("/influencer/marketplace?tab=slots")}>
+                View campaign opportunities
+              </Button>
             </CardContent>
           </Card>
         ))}

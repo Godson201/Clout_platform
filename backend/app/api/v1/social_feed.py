@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.deps import get_current_user
-from app.models.enums import NativePostStatus, NativePostVisibility, NotificationType, UserType
+from app.models.enums import NativePostStatus, NativePostVisibility, NotificationType, SocialAccountStatus, UserType
 from app.models.social_feed import Follow, Hashtag, NativePost, NativePostComment, NativePostDistribution, NativePostHashtag, NativePostLike, NativePostMedia, NativePostReport, NativePostSave, UserBlock
 from app.models.social_account import SocialAccount
 from app.models.user import User
@@ -18,6 +18,7 @@ from app.services.malware_scanning import scan_upload
 from app.core.crypto import decrypt_token
 from app.core.platform_capabilities import get_capabilities
 from app.services.social import get_adapter
+from app.services.social_feed_ranking import ranked_posts_for_user
 import os
 
 router = APIRouter(prefix="/social", tags=["social"])
@@ -68,6 +69,14 @@ async def feed(user: User = Depends(get_current_user), db: AsyncSession = Depend
     blocked = select(UserBlock.blocked_id).where(UserBlock.blocker_id == user.id)
     result = await db.execute(select(NativePost).where(NativePost.status == NativePostStatus.PUBLISHED, NativePost.author_id.in_(following), ~NativePost.author_id.in_(blocked)).order_by(NativePost.created_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return [await _post_read(db, post, user.id) for post in result.scalars() if await _can_view_post(db, post, user)]
+
+
+@router.get("/for-you", response_model=list[SocialPostRead])
+async def for_you_feed(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db), page_size: int = Query(20, ge=1, le=50)
+) -> list[SocialPostRead]:
+    posts = await ranked_posts_for_user(db, user=user, limit=page_size)
+    return [await _post_read(db, post, user.id) for post in posts]
 
 
 @router.get("/discover", response_model=list[SocialPostRead])
@@ -228,6 +237,12 @@ async def cross_post(post_id: uuid.UUID, payload: CrossPostRequest, user: User =
         raise HTTPException(status_code=422, detail="Select only your active connected accounts")
     storage = get_storage_backend(); deliveries = []
     for account in accounts:
+        if account.status != SocialAccountStatus.ACTIVE:
+            raise HTTPException(status_code=422, detail=f"Reconnect @{account.handle} before delivery")
+        existing = (await db.execute(select(NativePostDistribution).where(NativePostDistribution.post_id == post.id, NativePostDistribution.social_account_id == account.id))).scalar_one_or_none()
+        if existing is not None:
+            deliveries.append(existing)
+            continue
         delivery = NativePostDistribution(post_id=post.id, social_account_id=account.id, platform=account.platform)
         db.add(delivery); await db.flush()
         if not get_capabilities(account.platform).can_auto_publish:

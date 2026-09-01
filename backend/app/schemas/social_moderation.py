@@ -14,3 +14,10 @@ class SocialReportQueueItem(BaseModel):
 class ModerationDecision(BaseModel):
     archive_post: bool = False
     note: str | None = Field(default=None, max_length=1000)
+
+
+class ArchivedSocialPost(BaseModel):
+    post_id: uuid.UUID
+    author_id: uuid.UUID
+    body: str
+    updated_at: datetime

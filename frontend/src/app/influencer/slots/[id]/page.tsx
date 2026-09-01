@@ -14,7 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listMySlots } from "@/lib/campaigns-api";
+import { Textarea } from "@/components/ui/textarea";
+import { getSlotCreative, listMySlots, publishSlotCreative, uploadSlotCreative } from "@/lib/campaigns-api";
+import { crossPost, listCrossPosts, retryCrossPost, type CrossPostDelivery } from "@/lib/social-feed-api";
 import {
   createSlotPost,
   getSlotPost,
@@ -190,6 +192,98 @@ function MetricsPanel({ slotId }: { slotId: string }) {
   );
 }
 
+function CreativeWorkspace({ brandName, campaignTitle }: { brandName: string; campaignTitle: string }) {
+  const [video, setVideo] = useState<File | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
+  const tooLong = duration !== null && duration > 30;
+  return <Card><CardHeader><CardTitle>Create campaign ad</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Use {brandName}&apos;s approved toolkit creative with your own footage, voice, sound, or editing style for <span className="font-medium text-foreground">{campaignTitle}</span>.</p><div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-medium">Required before publishing</p><p className="text-muted-foreground">Your finished campaign video must be 30 seconds or shorter.</p></div><div className="space-y-1"><Label>Upload your finished video</Label><Input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(event) => { const file = event.target.files?.[0] ?? null; setVideo(file); setDuration(null); if (file) { const element = document.createElement("video"); element.preload = "metadata"; element.onloadedmetadata = () => { setDuration(element.duration); URL.revokeObjectURL(element.src); }; element.src = URL.createObjectURL(file); } }} /></div>{video && <p className={tooLong ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{video.name}{duration !== null ? ` · ${duration.toFixed(1)} seconds` : " · checking duration..."}{tooLong ? " — choose a video under 30 seconds." : ""}</p>}<Button variant="outline" disabled={!video || tooLong}>Save draft creative</Button><p className="text-xs text-muted-foreground">Editing inside Clout and final publishing will be enabled in the next workspace step. You can still download approved toolkit assets from the Ads Library now.</p></CardContent></Card>;
+}
+
+function SavedCreativeWorkspace({ slotId, brandName, campaignTitle }: { slotId: string; brandName: string; campaignTitle: string }) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [video, setVideo] = useState<File | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [caption, setCaption] = useState(`Check out my campaign creative for ${campaignTitle} from ${brandName}.`);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const tooLong = duration !== null && duration > 30;
+  const { data: savedCreative } = useQuery({
+    queryKey: ["slot-creative", slotId],
+    queryFn: () => getSlotCreative(slotId),
+    retry: false,
+  });
+  const upload = useMutation({
+    mutationFn: () => uploadSlotCreative(slotId, video!),
+    onSuccess: () => {
+      setVideo(null);
+      setDuration(null);
+      queryClient.invalidateQueries({ queryKey: ["slot-creative", slotId] });
+    },
+  });
+  const publish = useMutation({
+    mutationFn: () => publishSlotCreative(slotId, caption),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["slot-creative", slotId] });
+      queryClient.invalidateQueries({ queryKey: ["social-feed"] });
+      router.push("/social");
+    },
+  });
+  const accounts = useQuery({ queryKey: ["social-accounts", "me"], queryFn: listMySocialAccounts });
+  const deliveries = useQuery({
+    queryKey: ["campaign-creative-deliveries", savedCreative?.native_post_id],
+    queryFn: () => listCrossPosts(savedCreative!.native_post_id!),
+    enabled: Boolean(savedCreative?.native_post_id),
+  });
+  const deliver = useMutation({
+    mutationFn: () => crossPost(savedCreative!.native_post_id!, selectedAccountIds),
+    onSuccess: () => {
+      setSelectedAccountIds([]);
+      queryClient.invalidateQueries({ queryKey: ["campaign-creative-deliveries", savedCreative?.native_post_id] });
+    },
+  });
+  const retryDelivery = useMutation({
+    mutationFn: (delivery: CrossPostDelivery) => retryCrossPost(savedCreative!.native_post_id!, delivery.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campaign-creative-deliveries", savedCreative?.native_post_id] }),
+  });
+  const activeAccounts = (accounts.data ?? []).filter((account) => account.status === "active");
+  const deliveredAccountIds = new Set((deliveries.data ?? []).map((delivery) => delivery.social_account_id));
+  const toggleAccount = (id: string) => setSelectedAccountIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Create campaign ad</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">Use {brandName}&apos;s approved toolkit creative with your own footage, voice, sound, or editing style for <span className="font-medium text-foreground">{campaignTitle}</span>.</p>
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+          <p className="font-medium">Required before publishing</p>
+          <p className="text-muted-foreground">Your finished campaign video must be 30 seconds or shorter. Clout checks its real duration again before saving.</p>
+        </div>
+        <div className="space-y-1">
+          <Label>Upload your finished video</Label>
+          <Input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            setVideo(file); setDuration(null);
+            if (file) {
+              const element = document.createElement("video");
+              element.preload = "metadata";
+              element.onloadedmetadata = () => { setDuration(element.duration); URL.revokeObjectURL(element.src); };
+              element.src = URL.createObjectURL(file);
+            }
+          }} />
+        </div>
+        {video && <p className={tooLong ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{video.name}{duration !== null ? ` · ${duration.toFixed(1)} seconds` : " · checking duration..."}{tooLong ? " — choose a video under 30 seconds." : ""}</p>}
+        {upload.isError && <p className="text-sm text-destructive">{errorDetail(upload.error) ?? "The creative could not be saved."}</p>}
+        <Button variant="outline" onClick={() => upload.mutate()} disabled={!video || tooLong || duration === null || upload.isPending}>{upload.isPending ? "Saving creative..." : savedCreative ? "Replace saved creative" : "Save draft creative"}</Button>
+        {savedCreative && <div className="space-y-2 rounded-md border p-3"><p className="text-sm font-medium">Saved draft · {savedCreative.duration_seconds.toFixed(1)} seconds</p><video className="max-h-80 w-full rounded-md bg-black" controls playsInline preload="metadata"><source src={savedCreative.url} type={savedCreative.mime_type} /></video></div>}
+        {savedCreative && !savedCreative.native_post_id && <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3"><Label>Public Clout caption</Label><Textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={5000} placeholder="Tell the Clout community about this campaign..." /><Button onClick={() => publish.mutate()} disabled={!caption.trim() || publish.isPending}>{publish.isPending ? "Publishing to Clout..." : "Publish to public Clout feed"}</Button>{publish.isError && <p className="text-sm text-destructive">{errorDetail(publish.error) ?? "The creative could not be published."}</p>}</div>}
+        {savedCreative?.native_post_id && <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3 text-sm"><p className="font-medium">Published to the public Clout feed</p><Link href="/social" className="text-muted-foreground underline">View the public post</Link></div>}
+        {savedCreative?.native_post_id && <div className="space-y-3 rounded-md border p-3"><div><p className="font-medium">Deliver to connected social accounts</p><p className="text-sm text-muted-foreground">Choose only accounts you own. Clout keeps the delivery result for each platform.</p></div>{activeAccounts.length === 0 ? <p className="text-sm text-muted-foreground">No active account is connected. <Link href="/social-accounts" className="underline">Connect an account</Link> first.</p> : <div className="space-y-2">{activeAccounts.map((account) => <label key={account.id} className="flex items-center gap-2 rounded-md border p-2 text-sm"><input type="checkbox" checked={selectedAccountIds.includes(account.id)} disabled={deliveredAccountIds.has(account.id)} onChange={() => toggleAccount(account.id)} /><span className="capitalize">{account.platform}</span><span className="text-muted-foreground">@{account.handle}</span>{deliveredAccountIds.has(account.id) && <span className="ml-auto text-xs text-muted-foreground">Already submitted</span>}</label>)}</div>}<Button onClick={() => deliver.mutate()} disabled={selectedAccountIds.length === 0 || deliver.isPending}>{deliver.isPending ? "Sending to selected accounts..." : "Deliver to selected accounts"}</Button>{deliver.isError && <p className="text-sm text-destructive">{errorDetail(deliver.error) ?? "Delivery could not be started."}</p>}{deliveries.data && deliveries.data.length > 0 && <div className="space-y-2 border-t pt-3">{deliveries.data.map((delivery) => <div key={delivery.id} className="flex flex-wrap items-center gap-2 text-sm"><span className="capitalize font-medium">{delivery.platform}</span><span className={delivery.status === "published" ? "text-green-700" : delivery.status === "failed" ? "text-destructive" : "text-muted-foreground"}>{delivery.status}</span>{delivery.post_url && <a href={delivery.post_url} target="_blank" rel="noreferrer" className="underline">View post</a>}{delivery.status === "failed" && <Button size="xs" variant="outline" onClick={() => retryDelivery.mutate(delivery)} disabled={retryDelivery.isPending}>{retryDelivery.isPending ? "Retrying..." : "Retry"}</Button>}{delivery.error_message && <span className="w-full text-xs text-muted-foreground">{delivery.error_message}</span>}</div>)}</div>}</div>}
+        <p className="text-xs text-muted-foreground">Publishing here makes the ad visible to everyone on Clout. External delivery only occurs after the owner selects a connected account.</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SlotDetail({ slotId }: { slotId: string }) {
   const router = useRouter();
 
@@ -233,6 +327,8 @@ function SlotDetail({ slotId }: { slotId: string }) {
           </Button>
         </CardContent>
       </Card>
+
+      {slot.status === "claimed" && <SavedCreativeWorkspace slotId={slotId} brandName={slot.brand_name} campaignTitle={slot.advertisement_title} />}
 
       <Card>
         <CardHeader>
