@@ -23,6 +23,7 @@ EXPOSE 8000
 # Shell form (not exec-array) so ${PORT} actually expands — Railway (and most
 # PaaS targets) injects PORT at runtime and expects the app to bind to it,
 # falling back to 8000 for plain `docker run` / docker-compose.
-# Apply migrations before accepting traffic.  This shell-form command is kept
-# in the image because Render's Docker Command field does not preserve `&&`.
-CMD alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Apply migrations before accepting traffic.  The bootstrap handles the one
+# legacy case where tables exist but the original Alembic revision was never
+# recorded; fresh databases proceed through the complete migration chain.
+CMD python -m scripts.ensure_migration_baseline && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
