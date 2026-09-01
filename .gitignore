@@ -26,6 +26,7 @@ backend/phase3_media_lifecycle.db
 backend/phase3_media_lifecycle2.db
 backend/phase3_safety.db
 backend/bootstrap-*.db
+backend/migration-e1-check.db
 
 # Local dev database and uploaded media (LocalStorageBackend) — never real
 # object storage, and dev.db accumulates real test accounts/emails over time.

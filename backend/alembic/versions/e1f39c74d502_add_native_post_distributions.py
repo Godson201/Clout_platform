@@ -6,6 +6,7 @@ Revises: c87e4ad1b206
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision: str = "e1f39c74d502"
 down_revision: Union[str, None] = "c87e4ad1b206"
@@ -13,11 +14,23 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        # social_platform was introduced by the initial schema migration and
+        # must be reused here.  social_post_status is new at this revision.
+        platform = postgresql.ENUM("tiktok", "instagram", "facebook", "youtube", name="social_platform", create_type=False)
+        post_status = postgresql.ENUM("pending", "published", "failed", "deleted", name="social_post_status", create_type=True)
+        post_status.create(bind, checkfirst=True)
+        post_status = postgresql.ENUM("pending", "published", "failed", "deleted", name="social_post_status", create_type=False)
+    else:
+        platform = sa.Enum("tiktok", "instagram", "facebook", "youtube", name="social_platform")
+        post_status = sa.Enum("pending", "published", "failed", "deleted", name="social_post_status")
+
     op.create_table("native_post_distributions",
         sa.Column("id", sa.Uuid(), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False), sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("post_id", sa.Uuid(), nullable=False), sa.Column("social_account_id", sa.Uuid(), nullable=False),
-        sa.Column("platform", sa.Enum("tiktok", "instagram", "facebook", "youtube", name="social_platform"), nullable=False),
-        sa.Column("status", sa.Enum("pending", "published", "failed", "deleted", name="social_post_status"), nullable=False),
+        sa.Column("platform", platform, nullable=False),
+        sa.Column("status", post_status, nullable=False),
         sa.Column("external_post_id", sa.String(length=128)), sa.Column("post_url", sa.String(length=1024)), sa.Column("error_message", sa.Text()),
         sa.ForeignKeyConstraint(["post_id"], ["native_posts.id"], ondelete="CASCADE"), sa.ForeignKeyConstraint(["social_account_id"], ["social_accounts.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"), sa.UniqueConstraint("post_id", "social_account_id", name="uq_native_post_distribution_account"))
