@@ -435,9 +435,9 @@ export function DashboardShell({
             fill
             quality={80}
             sizes="100vw"
-            className="object-cover object-right opacity-[0.13] animate-[clout-dashboard-pan_24s_ease-in-out_infinite] dark:opacity-[0.18]"
+            className="object-cover object-right opacity-[0.42] animate-[clout-dashboard-pan_24s_ease-in-out_infinite] dark:opacity-[0.34]"
           />
-          <div className="absolute inset-0 bg-background/84 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(244,250,255,0.66)_0%,rgba(244,250,255,0.48)_48%,rgba(244,250,255,0.20)_100%)] dark:bg-[linear-gradient(110deg,rgba(7,24,39,0.72)_0%,rgba(7,24,39,0.54)_48%,rgba(7,24,39,0.28)_100%)]" />
         </div>
         <header className="relative z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
