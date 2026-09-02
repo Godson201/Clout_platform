@@ -99,6 +99,26 @@ async def public_discover(db: AsyncSession = Depends(get_db), page_size: int = Q
     return [await _post_read(db, post, None) for post in posts]
 
 
+@router.get("/creators", response_model=list[SocialAuthor])
+async def list_creators_to_follow(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(24, ge=1, le=50),
+) -> list[SocialAuthor]:
+    """A lightweight creator directory for following and collaboration."""
+    from app.models.influencer import Influencer
+
+    blocked = select(UserBlock.blocked_id).where(UserBlock.blocker_id == user.id)
+    rows = await db.execute(
+        select(User)
+        .join(Influencer, Influencer.id == User.id)
+        .where(User.id != user.id, User.user_type == UserType.INFLUENCER, ~User.id.in_(blocked))
+        .order_by(Influencer.display_name.asc())
+        .limit(limit)
+    )
+    return [await _author(db, creator) for creator in rows.scalars()]
+
+
 @router.get("/profiles/{target_id}", response_model=SocialProfileRead)
 async def social_profile(target_id: uuid.UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     target = await db.get(User, target_id)

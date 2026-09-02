@@ -21,5 +21,9 @@ export async function retryCrossPost(postId: string, distributionId: string) { c
 export async function reportPost(id: string, reason: string) { await api.post(`/social/posts/${id}/report`, { reason }); }
 export async function blockUser(id: string) { await api.post(`/social/users/${id}/block`); }
 export async function searchProfiles(q: string, filters: Record<string, string> = {}) { const { data } = await api.get<SocialPost["author"][]>("/social/search", { params: { q, ...filters } }); return data; }
+export async function listCreators() { const { data } = await api.get<SocialPost["author"][]>("/social/creators"); return data; }
 export async function getSocialProfile(id: string) { const { data } = await api.get<{ author: SocialPost["author"]; follower_count: number; following_count: number; following_by_me: boolean; posts: SocialPost[] }>(`/social/profiles/${id}`); return data; }
 export async function toggleFollow(id: string) { const { data } = await api.post<{ following: boolean; follower_count: number; following_count: number }>(`/social/users/${id}/follow`); return data; }
+export async function listProfileFollowers(id: string) { const { data } = await api.get<{ items: SocialPost["author"][]; total: number }>(`/social/profiles/${id}/followers`); return data; }
+export async function listProfileFollowing(id: string) { const { data } = await api.get<{ items: SocialPost["author"][]; total: number }>(`/social/profiles/${id}/following`); return data; }
+export async function repostPost(id: string) { const { data } = await api.post<SocialPost>(`/social/posts/${id}/repost`); return data; }
