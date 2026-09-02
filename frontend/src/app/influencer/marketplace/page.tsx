@@ -4,7 +4,7 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { AxiosError } from "axios";
 
@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { browseApprovedMedia, browseMarketplace, claimSlot, type MarketplaceFilters } from "@/lib/campaigns-api";
+import { browseApprovedMedia, browseMarketplace, claimSlot, downloadApprovedMedia, type MarketplaceFilters } from "@/lib/campaigns-api";
+import type { AssetModerationQueueItem } from "@/types/advertisement";
 import type { MarketplaceSlot } from "@/types/campaign";
 
 const PLATFORMS = ["tiktok", "instagram", "facebook", "youtube"];
@@ -177,28 +178,52 @@ function BrandMediaGallery() {
         <p className="text-sm text-muted-foreground">No approved brand media yet — check back soon.</p>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {data?.map((item) => (
-          <Card key={item.id}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-base">{item.advertisement_title}</CardTitle>
-                <p className="text-xs text-muted-foreground">{item.brand_name}</p>
-              </div>
-              <Badge className="capitalize">{item.asset_type}</Badge>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <AssetPreview asset={item} />
-              <p className="text-xs text-muted-foreground">{assetCaption(item)}</p>
-              {item.campaign_brief && <p className="text-sm">{item.campaign_brief}</p>}
-              {item.cta_text && <p className="text-xs font-medium">Brand asks: {item.cta_text}</p>}
-              <Button size="sm" className="w-full" onClick={() => window.location.assign("/influencer/marketplace?tab=slots")}>
-                View campaign opportunities
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+        {data?.map((item) => <BrandMediaCard key={item.id} item={item} />)}
       </div>
     </div>
+  );
+}
+
+function BrandMediaCard({ item }: { item: AssetModerationQueueItem }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const download = useMutation({ mutationFn: () => downloadApprovedMedia(item.id, item.original_filename) });
+  const useInCampaign = useMutation({
+    mutationFn: async () => {
+      if (!item.campaign_slot_id) throw new Error("No campaign opportunity is available for this media.");
+      if (item.campaign_slot_status === "claimed") return { id: item.campaign_slot_id };
+      return claimSlot(item.campaign_slot_id);
+    },
+    onSuccess: (slot) => router.push(`/influencer/slots/${slot.id}`),
+    onError: (err) => setError(err instanceof Error ? err.message : "Could not open this campaign."),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-base">{item.advertisement_title}</CardTitle>
+          <p className="text-xs text-muted-foreground">{item.brand_name}</p>
+        </div>
+        <Badge className="capitalize">{item.asset_type}</Badge>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <AssetPreview asset={item} />
+        <p className="text-xs text-muted-foreground">{assetCaption(item)}</p>
+        {item.campaign_brief && <p className="text-sm">{item.campaign_brief}</p>}
+        {item.cta_text && <p className="text-xs font-medium">Brand asks: {item.cta_text}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button size="sm" variant="outline" onClick={() => download.mutate()} disabled={download.isPending}>
+            {download.isPending ? "Preparing download..." : "Download media"}
+          </Button>
+          <Button size="sm" onClick={() => useInCampaign.mutate()} disabled={!item.campaign_slot_id || useInCampaign.isPending}>
+            {useInCampaign.isPending ? "Opening campaign..." : item.campaign_slot_id ? "Use in my campaign" : "No eligible campaign"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">After claiming, upload your finished 30-second-or-less video, publish it to CLOUT, and share it to connected accounts you own.</p>
+      </CardContent>
+    </Card>
   );
 }
 

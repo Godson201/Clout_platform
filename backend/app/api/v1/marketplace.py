@@ -1,4 +1,7 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -138,6 +141,7 @@ async def browse_approved_media(
     what brands are looking for, playable directly at original quality, not
     just a bell-icon mention.
     """
+    influencer = await _get_own_influencer(db, user)
     permitted_asset_ids = await accessible_asset_ids(db, influencer_id=user.id)
     if not permitted_asset_ids:
         return []
@@ -155,6 +159,28 @@ async def browse_approved_media(
         .limit(limit)
     )
     rows = (await db.execute(stmt)).all()
+
+    campaign_slots = (
+        await db.execute(
+            select(CampaignSlot, Campaign)
+            .join(Campaign, CampaignSlot.campaign_id == Campaign.id)
+            .where(
+                Campaign.status.in_([CampaignStatus.LISTED, CampaignStatus.ACTIVE]),
+                CampaignSlot.status.in_([SlotStatus.OPEN, SlotStatus.CLAIMED]),
+            )
+        )
+    ).all()
+    slots_by_advertisement: dict[object, list[CampaignSlot]] = {}
+    for slot, campaign in campaign_slots:
+        if slot.status == SlotStatus.CLAIMED and slot.influencer_id != user.id:
+            continue
+        if slot.status == SlotStatus.OPEN and not _matches_targeting(campaign=campaign, influencer=influencer):
+            continue
+        slots_by_advertisement.setdefault(campaign.advertisement_id, []).append(slot)
+    for slots in slots_by_advertisement.values():
+        # Resume an influencer's existing claimed workspace before offering an
+        # additional open slot for the same brand creative.
+        slots.sort(key=lambda slot: slot.status != SlotStatus.CLAIMED)
 
     storage = get_storage_backend()
     items: list[AssetModerationQueueItem] = []
@@ -183,6 +209,29 @@ async def browse_approved_media(
                 brand_name=brand.business_name,
                 campaign_brief=advertisement.script_text,
                 cta_text=advertisement.cta_text,
+                campaign_slot_id=(slots_by_advertisement.get(advertisement.id) or [None])[0].id if slots_by_advertisement.get(advertisement.id) else None,
+                campaign_slot_status=(slots_by_advertisement.get(advertisement.id) or [None])[0].status.value if slots_by_advertisement.get(advertisement.id) else None,
             )
         )
     return items
+
+
+@router.get("/media/{asset_id}/download")
+async def download_approved_media(
+    asset_id: uuid.UUID,
+    user: User = Depends(require_influencer),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Download an approved toolkit asset only when the influencer can access it."""
+    if asset_id not in await accessible_asset_ids(db, influencer_id=user.id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+    asset = await db.get(AdvertisementAsset, asset_id)
+    if asset is None or asset.status != AssetStatus.READY or asset.moderation_status != AssetModerationStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+    filename = asset.original_filename.replace('"', "'").replace("\r", "").replace("\n", "")
+    content = get_storage_backend().read(asset.storage_key)
+    return StreamingResponse(
+        iter([content]),
+        media_type=asset.mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

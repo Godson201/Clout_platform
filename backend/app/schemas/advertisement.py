@@ -99,6 +99,8 @@ class AssetModerationQueueItem(AdvertisementAssetRead):
     brand_name: str
     campaign_brief: str | None = None
     cta_text: str | None = None
+    campaign_slot_id: uuid.UUID | None = None
+    campaign_slot_status: str | None = None
 
 
 class RejectAssetRequest(BaseModel):

@@ -84,6 +84,18 @@ export async function browseApprovedMedia(): Promise<AssetModerationQueueItem[]>
   return data;
 }
 
+export async function downloadApprovedMedia(assetId: string, filename: string): Promise<void> {
+  const response = await api.get(`/marketplace/media/${assetId}/download`, { responseType: "blob" });
+  const url = URL.createObjectURL(response.data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function listMySlots(): Promise<MySlot[]> {
   const { data } = await api.get<MySlot[]>("/slots/mine");
   return data;

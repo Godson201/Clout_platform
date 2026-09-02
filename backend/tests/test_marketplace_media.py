@@ -60,6 +60,11 @@ class TestMarketplaceMedia:
         assert approved_id not in ids
         assert ids == []
 
+        download = await client.get(
+            f"/api/v1/marketplace/media/{approved_id}/download", headers={"Authorization": f"Bearer {inf_token}"}
+        )
+        assert download.status_code == 404
+
     async def test_brand_and_admin_cannot_use_influencer_only_route(self, client):
         brand_token = await _brand_token(client, email="media-brand-3@example.com")
         resp = await client.get("/api/v1/marketplace/media", headers={"Authorization": f"Bearer {brand_token}"})
