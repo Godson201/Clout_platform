@@ -3,12 +3,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-const { searchProfiles, listTrendingPosts, listHashtagPosts } = vi.hoisted(() => ({
+const { searchProfiles, listTrendingPosts, listHashtagPosts, listCreators, toggleFollow } = vi.hoisted(() => ({
   searchProfiles: vi.fn(),
   listTrendingPosts: vi.fn(),
   listHashtagPosts: vi.fn(),
+  listCreators: vi.fn().mockResolvedValue([]),
+  toggleFollow: vi.fn(),
 }));
-vi.mock("@/lib/social-feed-api", () => ({ searchProfiles, listTrendingPosts, listHashtagPosts }));
+vi.mock("@/lib/social-feed-api", () => ({ searchProfiles, listTrendingPosts, listHashtagPosts, listCreators, toggleFollow }));
 vi.mock("@/components/auth/require-user-type", () => ({ RequireUserType: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock("@/components/dashboard/dashboard-shell", () => ({ DashboardShell: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
