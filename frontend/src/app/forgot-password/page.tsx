@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { BackButton } from "@/components/ui/back-button";
+import { AuthPageVisualBackground } from "@/components/marketing/auth-page-visual-background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,11 +30,12 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
-      <div className="w-full max-w-sm">
-        <BackButton fallbackHref="/login" className="-ml-2" />
+    <main className="relative isolate flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden p-4">
+      <AuthPageVisualBackground />
+      <div className="relative z-10 w-full max-w-sm">
+        <BackButton fallbackHref="/login" className="-ml-2 border border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white" />
       </div>
-      <Card className="w-full max-w-sm">
+      <Card className="relative z-10 w-full max-w-sm shadow-2xl">
         <CardHeader>
           <CardTitle>Reset your password</CardTitle>
           <CardDescription>We&apos;ll email you a link to choose a new one.</CardDescription>

@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import type { AxiosError } from "axios";
 
 import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
-import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
+import { AuthPageVisualBackground } from "@/components/marketing/auth-page-visual-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -352,7 +352,7 @@ function RegisterTabs() {
 export default function RegisterPage() {
   return (
     <main className="relative isolate flex flex-1 flex-col items-center justify-center gap-4 p-4 py-12">
-      <PremiumGradientBackground />
+      <AuthPageVisualBackground />
       <div className="relative z-10 flex w-full max-w-2xl items-center justify-between">
         <BackButton fallbackHref="/" className="-ml-2 border-white/30 bg-transparent text-white hover:bg-white/10" />
         <ThemeToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />

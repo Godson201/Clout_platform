@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -7,8 +8,6 @@ import type { AxiosError } from "axios";
 import { BadgeCheck, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
 import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
-import { PhotoSlideshowBackground } from "@/components/marketing/photo-slideshow-background";
-import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -44,8 +43,16 @@ const HIGHLIGHTS = [
 function HeroPanel() {
   return (
     <div className="relative isolate hidden flex-1 flex-col justify-between overflow-hidden p-10 text-white lg:flex">
-      <PhotoSlideshowBackground />
-      <PremiumGradientBackground photoBehind />
+      <Image
+        src="/images/clout-hero-creator-v1.png"
+        alt="A creator filming a campaign with her phone"
+        fill
+        priority
+        quality={90}
+        sizes="50vw"
+        className="object-cover object-[72%_center]"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(3,22,38,0.80)_0%,rgba(3,22,38,0.48)_55%,rgba(3,22,38,0.12)_100%)]" />
       <div className="relative z-10 flex items-center justify-between">
         <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
         <ThemeToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />
