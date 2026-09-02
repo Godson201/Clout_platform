@@ -26,6 +26,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -102,6 +103,36 @@ const DASHBOARD_LABEL: Record<UserType, string> = {
   influencer: "Influencer Dashboard",
   admin: "Admin Dashboard",
 };
+
+const PAGE_GUIDES: Record<string, string> = {
+  "/brand/dashboard": "Start by reviewing your campaign activity, then open the Toolkit to prepare the next approved creative.",
+  "/brand/toolkit": "Choose a template, add your media and brief, then send the finished creative for admin review.",
+  "/brand/ads": "Keep approved media organised here. When a video is ready, turn the advertisement into a campaign.",
+  "/brand/campaigns": "Monitor live campaigns, funding, delivery progress, and creator performance from one place.",
+  "/brand/campaigns/new": "Choose an approved ready advertisement, set your audience and budget, then create campaign slots for matching creators.",
+  "/influencer/dashboard": "Check your matched opportunities, creator earnings, and the next action needed to grow your campaign work.",
+  "/influencer/marketplace": "Watch approved brand media, download the assets you are eligible to use, then claim a campaign to create your version.",
+  "/influencer/slots": "Open a claimed slot to upload a final video under 30 seconds, publish it to CLOUT, and share it to selected accounts.",
+  "/influencer/earnings": "Review verified earnings and request payouts once your campaign work has been delivered.",
+  "/social": "Post a playable photo or video, engage with the community, and use your public feed to build an audience.",
+  "/social/discover": "Search for people, hashtags, and trending conversations that match your niche and audience.",
+  "/social-accounts": "Connect accounts you own before sending a published campaign creative to external followers.",
+  "/messages": "Use messages to agree on campaign details, clarify a brief, and keep collaboration in one secure place.",
+  "/admin/dashboard": "Review the platform health first, then move through approvals, moderation, settlements, and audit activity.",
+  "/admin/media-review": "Review every uploaded brand asset before it reaches eligible influencers in the Ads Library.",
+  "/admin/social-moderation": "Resolve reported posts carefully, archive unsafe content when needed, and preserve an audit trail.",
+  "/admin/settlement": "Review delivery and settlement information before releasing or resolving campaign funds.",
+  "/settings": "Keep your profile, security, and notification settings current so your CLOUT account stays ready to work.",
+};
+
+function pageGuide(pathname: string | null, title: string): string {
+  if (!pathname) return `Use ${title} to complete your next CLOUT task.`;
+  if (PAGE_GUIDES[pathname]) return PAGE_GUIDES[pathname];
+  const closestPath = Object.keys(PAGE_GUIDES)
+    .filter((key) => pathname.startsWith(`${key}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  return closestPath ? PAGE_GUIDES[closestPath] : `Use ${title} to complete your next CLOUT task.`;
+}
 
 function initials(email: string) {
   return email.slice(0, 2).toUpperCase();
@@ -350,6 +381,7 @@ export function DashboardShell({
   const user = useAuthStore((s) => s.user);
   const clearSession = useAuthStore((s) => s.clearSession);
   const canMessage = user?.user_type === "brand" || user?.user_type === "influencer";
+  const guide = pageGuide(pathname, title);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { data: conversations } = useQuery({
@@ -395,8 +427,19 @@ export function DashboardShell({
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/clout-dashboard-ambient-v1.png"
+            alt=""
+            fill
+            quality={80}
+            sizes="100vw"
+            className="object-cover object-right opacity-[0.13] animate-[clout-dashboard-pan_24s_ease-in-out_infinite] dark:opacity-[0.18]"
+          />
+          <div className="absolute inset-0 bg-background/84 backdrop-blur-[1px]" />
+        </div>
+        <header className="relative z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -440,12 +483,17 @@ export function DashboardShell({
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6">
+        <main className="relative z-10 flex-1 px-4 py-6 sm:px-6">
           <div className="mb-4">
             <BackButton fallbackHref={user ? `/${user.user_type}/dashboard` : "/"} className="-ml-2" />
           </div>
           {user && !user.is_verified && <UnverifiedEmailBanner />}
-          <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <h1 className="text-2xl font-semibold">{title}</h1>
+            <div className="max-w-xl rounded-2xl border border-primary/15 bg-card/80 px-4 py-2.5 text-sm text-muted-foreground shadow-sm backdrop-blur-md">
+              <span className="mr-2 font-medium text-primary">Next step:</span>{guide}
+            </div>
+          </div>
           <div className="animate-fade-in">{children}</div>
         </main>
       </div>
