@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -64,8 +65,16 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative isolate flex min-h-[calc(100vh-4rem)] items-center overflow-hidden px-6 py-20 text-center">
-      <PhotoSlideshowBackground />
-      <PremiumGradientBackground photoBehind />
+      <Image
+        src="/images/clout-hero-creator-v1.png"
+        alt="A creator recording a product campaign with her phone"
+        fill
+        priority
+        quality={90}
+        sizes="100vw"
+        className="object-cover object-[68%_center] sm:object-center"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,22,38,0.72)_0%,rgba(3,22,38,0.38)_44%,rgba(3,22,38,0.05)_72%)]" />
       <div className="relative z-10 mx-auto max-w-3xl animate-fade-in">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
           <Sparkles className="size-3.5 text-brand-teal" />
@@ -97,6 +106,62 @@ function Hero() {
             Log in
           </Link>
         </p>
+      </div>
+    </section>
+  );
+}
+
+function VisualStories() {
+  return (
+    <section className="overflow-hidden bg-brand-navy px-6 py-20 text-white">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.9fr]">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
+            <Video className="size-3.5 text-brand-teal" />
+            Made for the way content moves
+          </span>
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+            Turn a brand brief into a video people want to watch.
+          </h2>
+          <p className="mt-4 max-w-xl text-white/75">
+            Brands add approved campaign media. Creators make an authentic short ad with it. Then CLOUT puts the
+            finished story in front of the right audience.
+          </p>
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            {[
+              ["1", "Choose", "Find a brief that fits your audience."],
+              ["2", "Create", "Use media from the toolkit or your own."],
+              ["3", "Share", "Publish a short, watchable campaign."],
+            ].map(([number, title, body]) => (
+              <div key={number} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                <span className="text-sm font-semibold text-brand-teal">{number}</span>
+                <h3 className="mt-2 font-medium">{title}</h3>
+                <p className="mt-1 text-xs leading-5 text-white/65">{body}</p>
+              </div>
+            ))}
+          </div>
+          <Button className="mt-8" size="lg" render={<Link href="/register?type=influencer" />}>
+            Explore as a creator
+          </Button>
+        </div>
+        <div className="relative mx-auto w-full max-w-md">
+          <div className="absolute -inset-8 rounded-full bg-brand-teal/30 blur-3xl" />
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/10 p-2 shadow-2xl">
+            <Image
+              src="/images/clout-creator-studio-v1.png"
+              alt="A creator producing a product video in a studio"
+              width={1122}
+              height={1400}
+              quality={90}
+              sizes="(max-width: 768px) 90vw, 420px"
+              className="aspect-[4/5] w-full rounded-[1.5rem] object-cover animate-[clout-visual-drift_8s_ease-in-out_infinite]"
+            />
+            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/20 bg-brand-navy/75 px-4 py-3 backdrop-blur-md">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-brand-teal">Creator studio</p>
+              <p className="mt-1 text-sm text-white/90">A real campaign can feel native, useful, and worth sharing.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -376,6 +441,7 @@ function LandingPage() {
     <div className="flex flex-1 flex-col">
       <Nav />
       <Hero />
+      <VisualStories />
       <HowItWorks />
       <Benefits />
       <PaymentsSection />
