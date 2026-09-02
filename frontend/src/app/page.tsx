@@ -17,7 +17,6 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { PhotoSlideshowBackground } from "@/components/marketing/photo-slideshow-background";
 import { PremiumGradientBackground } from "@/components/marketing/premium-gradient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -376,17 +375,17 @@ function PaymentsSection() {
   );
 }
 
-// Same 16 photos as the hero, reversed and offset so this section doesn't
-// crossfade through the exact same sequence a visitor just saw up top.
-const MOTIVATION_BANNER_IMAGES = Array.from(
-  { length: 16 },
-  (_, i) => `/images/slide-${String(16 - ((i + 8) % 16)).padStart(2, "0")}.jpg`,
-);
-
 function MotivationBanner() {
   return (
     <section className="relative isolate overflow-hidden px-6 py-20 text-center text-white">
-      <PhotoSlideshowBackground images={MOTIVATION_BANNER_IMAGES} />
+      <Image
+        src="/images/clout-registration-collaboration-v1.png"
+        alt=""
+        fill
+        quality={90}
+        sizes="100vw"
+        className="object-cover object-[68%_center]"
+      />
       <PremiumGradientBackground photoBehind />
       <div className="relative z-10 mx-auto max-w-2xl animate-fade-in">
         <h2 className="text-3xl font-semibold text-balance sm:text-4xl">

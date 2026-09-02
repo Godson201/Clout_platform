@@ -44,15 +44,14 @@ function HeroPanel() {
   return (
     <div className="relative isolate hidden flex-1 flex-col justify-between overflow-hidden p-10 text-white lg:flex">
       <Image
-        src="/images/clout-hero-creator-v1.png"
-        alt="A creator filming a campaign with her phone"
+        src="/images/clout-login-creator-v1.png"
+        alt="A creator filming a product campaign"
         fill
         priority
         quality={90}
         sizes="50vw"
-        className="object-cover object-[72%_center]"
+        className="object-cover object-[68%_center]"
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(3,22,38,0.80)_0%,rgba(3,22,38,0.48)_55%,rgba(3,22,38,0.12)_100%)]" />
       <div className="relative z-10 flex items-center justify-between">
         <img src="/clout-logo.png" alt="CLOUT" className="h-8 w-auto" />
         <ThemeToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />
@@ -66,9 +65,9 @@ function HeroPanel() {
           match to final report.
         </p>
       </div>
-      <div className="relative z-10 grid gap-5 sm:grid-cols-2">
-        {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="glass-panel rounded-[18px] p-4">
+      <div className="relative z-10 grid gap-4 sm:grid-cols-2">
+        {HIGHLIGHTS.slice(0, 2).map(({ icon: Icon, title, body }) => (
+          <div key={title} className="rounded-[18px] border border-white/25 bg-brand-navy/75 p-4 backdrop-blur-md">
             <Icon className="size-5 text-brand-teal" />
             <p className="mt-2 text-sm font-medium">{title}</p>
             <p className="mt-1 text-xs text-white/75">{body}</p>
