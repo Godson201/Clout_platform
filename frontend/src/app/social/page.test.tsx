@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-const { listForYouFeed, listFeed, reportPost, blockUser, createPost, uploadPostMedia, togglePostLike, togglePostSave, listPostComments, addPostComment } = vi.hoisted(() => ({
+const { listForYouFeed, listFeed, reportPost, blockUser, createPost, uploadPostMedia, togglePostLike, togglePostSave, listPostComments, addPostComment, repostPost } = vi.hoisted(() => ({
   listForYouFeed: vi.fn(),
   listFeed: vi.fn(),
   reportPost: vi.fn(),
@@ -14,6 +14,7 @@ const { listForYouFeed, listFeed, reportPost, blockUser, createPost, uploadPostM
   togglePostSave: vi.fn(),
   listPostComments: vi.fn().mockResolvedValue([]),
   addPostComment: vi.fn(),
+  repostPost: vi.fn(),
 }));
 vi.mock("@/lib/social-feed-api", () => ({
   listForYouFeed,
@@ -26,6 +27,7 @@ vi.mock("@/lib/social-feed-api", () => ({
   togglePostSave,
   listPostComments,
   addPostComment,
+  repostPost,
 }));
 vi.mock("@/components/auth/require-user-type", () => ({ RequireUserType: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock("@/components/dashboard/dashboard-shell", () => ({ DashboardShell: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
