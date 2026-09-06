@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: clout
       POSTGRES_DB: clout
     ports:
-      - "5432:5432"
+      # Host access is optional; change this when another local project uses
+      # PostgreSQL's default port (for example CLOUT_POSTGRES_PORT=5434).
+      - "${CLOUT_POSTGRES_PORT:-5432}:5432"
     volumes:
       - clout_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +22,9 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # The backend uses Redis over Docker's internal network. This host port
+      # is only for local inspection and can safely move beside another app.
+      - "${CLOUT_REDIS_PORT:-6379}:6379"
 
   backend:
     build: ./backend
