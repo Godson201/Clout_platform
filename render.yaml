@@ -8,7 +8,10 @@ services:
     healthCheckPath: /api/v1/health
     envVars:
       - key: ENVIRONMENT
-        value: production
+        # This free hosted instance is a staging/demo environment while MoMo,
+        # live social provider approval, and ClamAV are still pending. Switch
+        # to production only when all production integrations are configured.
+        value: development
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET_KEY
