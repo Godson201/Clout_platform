@@ -30,9 +30,11 @@ def process_native_post_video(media_id: str) -> None:
         thumbnail_key = f"social/thumbnails/{media.id}.jpg"
         try:
             transcode_for_platform(storage.local_path(media.storage_key), storage.local_path(output_key), PLATFORM_VIDEO_SPECS[next(iter(PLATFORM_VIDEO_SPECS))])
+            storage.commit_local(output_key)
             import subprocess, os
             os.makedirs(os.path.dirname(storage.local_path(thumbnail_key)), exist_ok=True)
             subprocess.run(["ffmpeg", "-y", "-ss", "0.5", "-i", storage.local_path(output_key), "-frames:v", "1", storage.local_path(thumbnail_key)], capture_output=True, check=True, timeout=60)
+            storage.commit_local(thumbnail_key)
             media.processed_storage_key = output_key; media.thumbnail_storage_key = thumbnail_key; media.processing_status = "ready"; media.error_message = None
         except Exception as exc:
             media.processing_status = "failed"; media.error_message = str(exc)
@@ -84,6 +86,7 @@ def process_advertisement_asset(asset_id: str) -> None:
 
             try:
                 result = transcode_for_platform(storage.local_path(asset.storage_key), output_path, spec)
+                storage.commit_local(output_key)
                 rendition.storage_key = output_key
                 rendition.width = result.width
                 rendition.height = result.height

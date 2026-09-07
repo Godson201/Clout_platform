@@ -27,6 +27,23 @@ services:
         sync: false
       - key: MEDIA_ROOT
         value: /app/media
+      # Fill these from an S3-compatible provider (Cloudflare R2, AWS S3, or
+      # MinIO) before accepting public media. Keep the bucket credentials as
+      # Render secrets, never in this file or Git.
+      - key: STORAGE_BACKEND
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: MEDIA_URL_EXPIRE_SECONDS
+        value: "3600"
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "true"
       - key: PAYMENT_PROVIDER_MODE

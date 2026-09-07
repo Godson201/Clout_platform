@@ -42,6 +42,14 @@ class Settings(BaseSettings):
         new_query = urlencode(query)
         return urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
 
+    @field_validator("STORAGE_BACKEND")
+    @classmethod
+    def _validate_storage_backend(cls, value: str) -> str:
+        normalized = value.lower().strip()
+        if normalized not in {"local", "s3"}:
+            raise ValueError("STORAGE_BACKEND must be 'local' or 's3'")
+        return normalized
+
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
@@ -60,6 +68,16 @@ class Settings(BaseSettings):
     # app/services/storage.py). Swapping to a real bucket later means adding an
     # S3StorageBackend behind the same interface, not touching call sites.
     MEDIA_ROOT: str = "./media"
+    # "local" keeps development simple. "s3" works with AWS S3, Cloudflare
+    # R2, MinIO, and any S3-compatible object store for durable production
+    # media. Private object stores are preferred; CLOUT mints read URLs.
+    STORAGE_BACKEND: str = "local"
+    S3_BUCKET: str | None = None
+    S3_REGION: str = "auto"
+    S3_ENDPOINT_URL: str | None = None
+    S3_ACCESS_KEY_ID: str | None = None
+    S3_SECRET_ACCESS_KEY: str | None = None
+    MEDIA_URL_EXPIRE_SECONDS: int = 3600
     MAX_VIDEO_UPLOAD_MB: int = 200
     MAX_IMAGE_UPLOAD_MB: int = 10
     MAX_AUDIO_UPLOAD_MB: int = 20
