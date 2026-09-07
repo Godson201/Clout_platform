@@ -1,6 +1,14 @@
 import { api } from "@/lib/api";
 import type { Comment, PostMetricSnapshot, SocialAccount, SocialPost } from "@/types/social";
 
+export interface SocialPlatformCapability {
+  platform: "tiktok" | "instagram" | "facebook" | "youtube";
+  can_auto_publish: boolean;
+  can_schedule: boolean;
+  can_fetch_metrics: boolean;
+  can_fetch_comments: boolean;
+}
+
 export async function getConnectUrl(platform: string): Promise<string> {
   const { data } = await api.get<{ authorization_url: string }>(`/social-accounts/connect/${platform}`);
   return data.authorization_url;
@@ -13,6 +21,11 @@ export async function completeOAuthCallback(platform: string, code: string, stat
 
 export async function listMySocialAccounts(): Promise<SocialAccount[]> {
   const { data } = await api.get<SocialAccount[]>("/social-accounts/me");
+  return data;
+}
+
+export async function listSocialPlatformCapabilities(): Promise<SocialPlatformCapability[]> {
+  const { data } = await api.get<SocialPlatformCapability[]>("/social-accounts/capabilities");
   return data;
 }
 

@@ -6,13 +6,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.deps import get_current_user
+from app.core.platform_capabilities import get_capabilities
 from app.models.enums import SocialPlatform
 from app.models.social_account import SocialAccount
 from app.models.user import User
-from app.schemas.social_account import ConnectResponse, OAuthCallbackRequest, SocialAccountRead
+from app.schemas.social_account import ConnectResponse, OAuthCallbackRequest, SocialAccountRead, SocialPlatformCapabilityRead
 from app.services.social_accounts import complete_connection, disconnect_account, initiate_connection
 
 router = APIRouter(prefix="/social-accounts", tags=["social-accounts"])
+
+
+@router.get("/capabilities", response_model=list[SocialPlatformCapabilityRead])
+async def list_platform_capabilities(user: User = Depends(get_current_user)) -> list[SocialPlatformCapabilityRead]:
+    """Expose the effective capability matrix without exposing any provider secrets.
+
+    This keeps the UI truthful: a connected account does not imply that CLOUT
+    has been approved to publish, schedule, or collect data for that platform.
+    """
+    return [
+        SocialPlatformCapabilityRead(platform=platform, **get_capabilities(platform).__dict__)
+        for platform in SocialPlatform
+    ]
 
 
 @router.get("/connect/{platform}", response_model=ConnectResponse)

@@ -38,6 +38,17 @@ async def _claimed_slot(client, tiny_video_bytes, *, brand_email: str, inf_email
 
 
 class TestSocialAccountConnection:
+    async def test_lists_effective_platform_capabilities(self, client, tiny_video_bytes):
+        token = await register_influencer_token(client, email="capability-inf@example.com", username="capabilityinf")
+        response = await client.get("/api/v1/social-accounts/capabilities", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 200
+        capabilities = {item["platform"]: item for item in response.json()}
+        assert set(capabilities) == {"tiktok", "instagram", "facebook", "youtube"}
+        # The test environment uses the explicit mock capability matrix so the
+        # whole publish path remains exercised end-to-end.
+        assert capabilities["tiktok"]["can_auto_publish"] is True
+
     async def test_connect_and_callback_creates_account(self, client, tiny_video_bytes):
         inf_token = await register_influencer_token(client, email="connect-inf@example.com", username="connectinf")
         account = await _connect_account(client, inf_token, platform="tiktok")

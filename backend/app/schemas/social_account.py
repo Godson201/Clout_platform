@@ -26,3 +26,13 @@ class SocialAccountRead(BaseModel):
     status: SocialAccountStatus
     token_expires_at: datetime | None
     created_at: datetime
+
+
+class SocialPlatformCapabilityRead(BaseModel):
+    """Capabilities CLOUT can honestly offer for a connected platform now."""
+
+    platform: SocialPlatform
+    can_auto_publish: bool
+    can_schedule: bool
+    can_fetch_metrics: bool
+    can_fetch_comments: bool
