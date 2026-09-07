@@ -85,4 +85,3 @@ http://localhost:3002/social/callback/instagram
 - Connect an isolated test Page or Professional account first.
 - Request Meta App Review before allowing people outside your app roles to
   connect or publish.
-
