@@ -10,7 +10,7 @@ from app.core.deps import require_brand
 from app.models.advertisement import Advertisement
 from app.models.advertisement_asset import AdvertisementAsset, AssetShareRecipient
 from app.models.advertisement_template import AdvertisementTemplate
-from app.models.enums import AdvertisementStatus, AssetDistribution, AssetModerationStatus, AssetStatus, AssetType, UserType
+from app.models.enums import AdvertisementStatus, AssetDistribution, AssetModerationStatus, AssetStatus, AssetType, RenditionStatus, UserType
 from app.models.influencer import Influencer
 from app.models.user import User
 from app.schemas.advertisement import (
@@ -24,7 +24,11 @@ from app.schemas.advertisement import (
     InfluencerAudienceOption,
 )
 from app.schemas.common import Page
-from app.services.advertisement_assets import delete_advertisement_asset, store_advertisement_asset
+from app.services.advertisement_assets import (
+    delete_advertisement_asset,
+    enqueue_advertisement_video_processing,
+    store_advertisement_asset,
+)
 from app.services.storage import get_storage_backend
 
 router = APIRouter(prefix="/advertisements", tags=["advertisements"], dependencies=[Depends(require_brand)])
@@ -91,7 +95,7 @@ async def _get_owned_asset(
     result = await db.execute(
         select(AdvertisementAsset)
         .join(Advertisement, AdvertisementAsset.advertisement_id == Advertisement.id)
-        .options(selectinload(AdvertisementAsset.recipients))
+        .options(selectinload(AdvertisementAsset.recipients), selectinload(AdvertisementAsset.renditions))
         .where(AdvertisementAsset.id == asset_id, Advertisement.id == advertisement_id, Advertisement.brand_id == user.id)
     )
     asset = result.scalar_one_or_none()
@@ -222,6 +226,47 @@ async def upload_advertisement_asset(
         .execution_options(populate_existing=True)
     )
     asset = result.scalar_one()
+    return _asset_to_read(asset)
+
+
+@router.post(
+    "/{advertisement_id}/assets/{asset_id}/retry",
+    response_model=AdvertisementAssetRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def retry_advertisement_video_processing(
+    advertisement_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    user: User = Depends(require_brand),
+    db: AsyncSession = Depends(get_db),
+) -> AdvertisementAssetRead:
+    """Retry a failed toolkit-video transcode from the original upload.
+
+    Generated files from a previous attempt are removed before a fresh queue
+    job starts, so the browser can never be handed an old partial rendition.
+    """
+    asset = await _get_owned_asset(db, user=user, advertisement_id=advertisement_id, asset_id=asset_id)
+    if asset.asset_type != AssetType.VIDEO:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only video assets require processing retries")
+    if asset.status not in {AssetStatus.FAILED, AssetStatus.UPLOADED}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This video is already processing or ready")
+
+    storage = get_storage_backend()
+    for rendition in asset.renditions:
+        if rendition.storage_key:
+            storage.delete(rendition.storage_key)
+        rendition.storage_key = None
+        rendition.width = None
+        rendition.height = None
+        rendition.duration_seconds = None
+        rendition.error_message = None
+        rendition.status = RenditionStatus.PENDING
+    asset.status = AssetStatus.UPLOADED
+    asset.error_message = None
+    await db.commit()
+
+    asset = await _get_owned_asset(db, user=user, advertisement_id=advertisement_id, asset_id=asset_id)
+    enqueue_advertisement_video_processing(asset.id)
     return _asset_to_read(asset)
 
 

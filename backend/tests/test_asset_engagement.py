@@ -13,7 +13,7 @@ async def _create_ad_with_image(client, token: str, title: str = "Engagement tes
     upload_resp = await client.post(
         f"/api/v1/advertisements/{ad_id}/assets",
         data={"asset_type": "image"},
-        files={"file": ("photo.jpg", b"fake image bytes", "image/jpeg")},
+        files={"file": ("photo.jpg", b"\xff\xd8\xffvalid-jpeg-signature", "image/jpeg")},
         headers={"Authorization": f"Bearer {token}"},
     )
     return upload_resp.json()["id"]

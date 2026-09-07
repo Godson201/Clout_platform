@@ -37,6 +37,30 @@ class TestAssetUploadValidation:
         )
         assert resp.status_code == 400
 
+    async def test_rejects_image_with_forged_file_contents(self, client):
+        token = await _brand_token(client, email="signature-reject@example.com")
+        ad_id = await _create_ad(client, token)
+
+        resp = await client.post(
+            f"/api/v1/advertisements/{ad_id}/assets",
+            data={"asset_type": "image"},
+            files={"file": ("not-really-a-photo.jpg", b"this is not a JPEG", "image/jpeg")},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 400
+
+    async def test_rejects_svg_logo(self, client):
+        token = await _brand_token(client, email="svg-reject@example.com")
+        ad_id = await _create_ad(client, token)
+
+        resp = await client.post(
+            f"/api/v1/advertisements/{ad_id}/assets",
+            data={"asset_type": "logo"},
+            files={"file": ("logo.svg", b"<svg></svg>", "image/svg+xml")},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 400
+
     async def test_rejects_oversized_file(self, client):
         token = await _brand_token(client, email="size-reject@example.com")
         ad_id = await _create_ad(client, token)
@@ -110,7 +134,7 @@ class TestVideoProcessingPipeline:
         upload_resp = await client.post(
             f"/api/v1/advertisements/{ad_id}/assets",
             data={"asset_type": "image"},
-            files={"file": ("logo.png", b"\x89PNG fake bytes", "image/png")},
+            files={"file": ("logo.png", b"\x89PNG\r\n\x1a\nvalid-signature", "image/png")},
             headers={"Authorization": f"Bearer {token}"},
         )
         asset_id = upload_resp.json()["id"]

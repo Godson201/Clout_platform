@@ -78,6 +78,11 @@ export async function deleteAdvertisementAsset(advertisementId: string, assetId:
   await api.delete(`/advertisements/${advertisementId}/assets/${assetId}`);
 }
 
+export async function retryAdvertisementAsset(advertisementId: string, assetId: string): Promise<AdvertisementAsset> {
+  const { data } = await api.post<AdvertisementAsset>(`/advertisements/${advertisementId}/assets/${assetId}/retry`);
+  return data;
+}
+
 export async function listInfluencerAudience(advertisementId: string): Promise<InfluencerAudienceOption[]> {
   const { data } = await api.get<InfluencerAudienceOption[]>(`/advertisements/${advertisementId}/influencer-audience`);
   return data;

@@ -11,7 +11,14 @@ from app.core.config import get_settings
 from app.models.advertisement_asset import AdvertisementAsset
 from app.models.advertisement_rendition import AdvertisementRendition
 from app.models.enums import AssetStatus, AssetType, SocialPlatform
-from app.services.storage import allowed_extensions, generate_storage_key, get_storage_backend, read_with_limit
+from app.services.malware_scanning import scan_upload
+from app.services.storage import (
+    allowed_extensions,
+    generate_storage_key,
+    get_storage_backend,
+    read_with_limit,
+    validate_media_signature,
+)
 
 settings = get_settings()
 logger = logging.getLogger("clout")
@@ -73,6 +80,22 @@ def _validate_upload(asset_type: AssetType, file: UploadFile) -> str:
     return ext
 
 
+def _signature_media_type(asset_type: AssetType) -> str:
+    """Map toolkit asset names to the categories inspected by storage."""
+    if asset_type in {AssetType.IMAGE, AssetType.LOGO}:
+        return "image"
+    if asset_type in {AssetType.AUDIO, AssetType.VOICEOVER}:
+        return "audio"
+    return "video"
+
+
+def enqueue_advertisement_video_processing(asset_id: uuid.UUID) -> None:
+    """Queue without blocking an API worker, including eager local mode."""
+    from app.tasks.video_processing_tasks import process_advertisement_asset
+
+    _fire_and_forget(run_in_threadpool(process_advertisement_asset.delay, str(asset_id)))
+
+
 async def store_advertisement_asset(
     db: AsyncSession, *, advertisement_id: uuid.UUID, asset_type: AssetType, file: UploadFile
 ) -> AdvertisementAsset:
@@ -82,6 +105,9 @@ async def store_advertisement_asset(
     content = await read_with_limit(file, max_bytes)
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+
+    validate_media_signature(media_type=_signature_media_type(asset_type), content=content)
+    scan_upload(content)
 
     storage = get_storage_backend()
     storage_key = generate_storage_key(advertisement_id, asset_type.value, file.filename or "upload")
@@ -111,17 +137,13 @@ async def store_advertisement_asset(
     await db.refresh(asset)
 
     if asset_type == AssetType.VIDEO:
-        # Imported lazily to avoid pulling Celery/the sync DB engine into every
-        # module that imports this file (e.g. plain profile-CRUD tests).
-        from app.tasks.video_processing_tasks import process_advertisement_asset
-
         # Not awaited: this response must return immediately regardless of how
         # long the transcode takes. run_in_threadpool still matters even in
         # CELERY_TASK_ALWAYS_EAGER dev mode — eager mode runs the *entire*
         # ffmpeg pipeline synchronously wherever `.delay()` is called, which
         # would otherwise block the event loop for every other concurrent
         # request too, not just this one.
-        _fire_and_forget(run_in_threadpool(process_advertisement_asset.delay, str(asset.id)))
+        enqueue_advertisement_video_processing(asset.id)
 
     return asset
 

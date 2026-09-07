@@ -24,6 +24,7 @@ import {
   deleteAdvertisementAsset,
   getAdvertisement,
   listInfluencerAudience,
+  retryAdvertisementAsset,
   updateAdvertisement,
   updateAssetDistribution,
   uploadAdvertisementAsset,
@@ -62,6 +63,10 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
     mutationFn: () => updateAssetDistribution(advertisementId, asset.id, distribution, recipientIds),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["advertisement", advertisementId] }),
   });
+  const retryMutation = useMutation({
+    mutationFn: () => retryAdvertisementAsset(advertisementId, asset.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["advertisement", advertisementId] }),
+  });
 
   return (
     <Card>
@@ -81,6 +86,15 @@ function AssetCard({ asset, advertisementId }: { asset: AdvertisementAsset; adve
       </CardHeader>
       <CardContent className="space-y-3">
         {asset.error_message && <p className="text-sm text-destructive">{asset.error_message}</p>}
+        {asset.asset_type === "video" && asset.status === "failed" && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <p className="flex-1 text-xs text-muted-foreground">The original upload is kept securely. You can retry processing without uploading it again.</p>
+            <Button size="sm" variant="outline" onClick={() => retryMutation.mutate()} disabled={retryMutation.isPending}>
+              {retryMutation.isPending ? "Retrying..." : "Retry processing"}
+            </Button>
+            {retryMutation.isError && <p className="w-full text-xs text-destructive">Could not start the retry. Please try again.</p>}
+          </div>
+        )}
         <AssetPreview asset={asset} />
         {asset.status === "ready" && (
           <div className="flex flex-wrap items-center gap-2">

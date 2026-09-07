@@ -16,7 +16,7 @@ async def _create_and_approve_image_asset(client, *, brand_email: str, admin_ema
     upload_resp = await client.post(
         f"/api/v1/advertisements/{ad_id}/assets",
         data={"asset_type": "image"},
-        files={"file": ("photo.jpg", b"fake image bytes", "image/jpeg")},
+        files={"file": ("photo.jpg", b"\xff\xd8\xffvalid-jpeg-signature", "image/jpeg")},
         headers={"Authorization": f"Bearer {brand_token}"},
     )
     asset_id = upload_resp.json()["id"]
@@ -47,7 +47,7 @@ class TestMarketplaceMedia:
         await client.post(
             f"/api/v1/advertisements/{ad_resp.json()['id']}/assets",
             data={"asset_type": "image"},
-            files={"file": ("photo2.jpg", b"fake image bytes 2", "image/jpeg")},
+            files={"file": ("photo2.jpg", b"\xff\xd8\xffvalid-jpeg-signature", "image/jpeg")},
             headers={"Authorization": f"Bearer {brand_token}"},
         )
 

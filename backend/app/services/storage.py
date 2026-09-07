@@ -200,7 +200,9 @@ def get_storage_backend() -> StorageBackend:
 _ASSET_TYPE_EXTENSIONS = {
     "video": {".mp4", ".mov", ".webm", ".mkv"},
     "image": {".jpg", ".jpeg", ".png", ".webp"},
-    "logo": {".jpg", ".jpeg", ".png", ".webp", ".svg"},
+    # SVG is intentionally not accepted: it is executable markup, unsuitable
+    # for media later rendered or downloaded by other CLOUT users.
+    "logo": {".jpg", ".jpeg", ".png", ".webp"},
     "audio": {".mp3", ".wav", ".m4a", ".aac"},
     "voiceover": {".mp3", ".wav", ".m4a", ".aac"},
 }

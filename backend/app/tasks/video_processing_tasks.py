@@ -12,7 +12,7 @@ from app.models.advertisement_rendition import AdvertisementRendition
 from app.models.enums import AssetStatus, RenditionStatus
 from app.models.social_feed import NativePostMedia
 from app.services.storage import generate_rendition_key, get_storage_backend
-from app.services.video_processing import VideoProcessingError, probe_video, transcode_for_platform
+from app.services.video_processing import probe_video, transcode_for_platform
 
 logger = logging.getLogger("clout.tasks")
 
@@ -59,9 +59,10 @@ def process_advertisement_asset(asset_id: str) -> None:
 
         try:
             probe = probe_video(storage.local_path(asset.storage_key))
-        except VideoProcessingError as exc:
+        except Exception as exc:
             asset.status = AssetStatus.FAILED
-            asset.error_message = str(exc)
+            asset.error_message = f"Could not inspect uploaded video: {exc}"[:1000]
+            logger.exception("Video probe failed for asset %s", asset.id)
             db.commit()
             return
 
@@ -93,12 +94,16 @@ def process_advertisement_asset(asset_id: str) -> None:
                 rendition.duration_seconds = result.duration_seconds
                 rendition.status = RenditionStatus.READY
                 any_ready = True
-            except VideoProcessingError as exc:
+            except Exception as exc:
+                # Never leave a half-written local/R2 object available after a
+                # failed FFmpeg invocation. A later retry starts cleanly.
+                storage.delete(output_key)
                 rendition.status = RenditionStatus.FAILED
-                rendition.error_message = str(exc)
-                logger.error("Rendition failed for asset %s / %s: %s", asset_id, rendition.platform, exc)
+                rendition.error_message = str(exc)[:1000]
+                logger.exception("Rendition failed for asset %s / %s", asset_id, rendition.platform)
 
             db.commit()
 
         asset.status = AssetStatus.READY if any_ready else AssetStatus.FAILED
+        asset.error_message = None if any_ready else "No platform rendition could be produced. Retry processing or upload a different video."
         db.commit()
