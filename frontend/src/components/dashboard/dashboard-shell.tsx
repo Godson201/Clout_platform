@@ -14,6 +14,7 @@ import {
   Megaphone,
   MessageCircle,
   Menu,
+  MousePointerClick,
   PlusCircle,
   Scale,
   Search,
@@ -29,7 +30,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BackButton } from "@/components/ui/back-button";
@@ -105,7 +106,6 @@ const DASHBOARD_LABEL: Record<UserType, string> = {
 };
 
 interface PageGuide {
-  emoji: string;
   label: string;
   text: string;
   actionLabel?: string;
@@ -113,34 +113,43 @@ interface PageGuide {
 }
 
 const PAGE_GUIDES: Record<string, PageGuide> = {
-  "/brand/dashboard": { emoji: "📊", label: "Start here", text: "Review campaign activity, then prepare your next approved creative.", actionLabel: "Open Ad Toolkit", href: "/brand/toolkit" },
-  "/brand/toolkit": { emoji: "🎬", label: "Create your brief", text: "Choose a template, add media and a clear brief, then send it for admin review.", actionLabel: "View Ads Library", href: "/brand/ads" },
-  "/brand/ads": { emoji: "🗂️", label: "Turn creative into a campaign", text: "When a video is ready and approved, use it to create a campaign for matched creators.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
-  "/brand/campaigns": { emoji: "📈", label: "Track your results", text: "Monitor funding, delivery progress, and creator performance from one place.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
-  "/brand/campaigns/new": { emoji: "🎯", label: "Set the campaign goal", text: "Choose approved media, audience, budget, and campaign slots for the right creators." },
-  "/influencer/dashboard": { emoji: "✨", label: "Find your next opportunity", text: "Check matches, earnings, and the next action that grows your creator work.", actionLabel: "Explore marketplace", href: "/influencer/marketplace" },
-  "/influencer/marketplace": { emoji: "🛍️", label: "Choose a brand opportunity", text: "Watch approved media, download assets you can use, and claim the right campaign.", actionLabel: "View my slots", href: "/influencer/slots" },
-  "/influencer/slots": { emoji: "🎥", label: "Publish your campaign ad", text: "Upload a final video under 30 seconds, publish it to CLOUT, then share it to your connected accounts." },
-  "/influencer/earnings": { emoji: "💰", label: "Review earnings", text: "Check verified earnings and request a payout once campaign work is delivered." },
-  "/social": { emoji: "💬", label: "Join the conversation", text: "Post playable media, react to creators, and build your public CLOUT audience.", actionLabel: "Discover creators", href: "/social/discover" },
-  "/social/discover": { emoji: "🔎", label: "Find your people", text: "Search creators, hashtags, and trending conversations that match your niche." },
-  "/social-accounts": { emoji: "🔗", label: "Connect your accounts", text: "Connect accounts you own before sending campaign content to external followers." },
-  "/messages": { emoji: "✉️", label: "Keep collaboration clear", text: "Use messages to agree on campaign details and clarify a brief in one secure place." },
-  "/admin/dashboard": { emoji: "🛡️", label: "Keep CLOUT healthy", text: "Review platform activity, then work through approvals, moderation, settlements, and audits.", actionLabel: "Review media", href: "/admin/media-review" },
-  "/admin/media-review": { emoji: "✅", label: "Review before distribution", text: "Approve only safe, suitable brand media before eligible influencers can use it." },
-  "/admin/social-moderation": { emoji: "🚩", label: "Protect the community", text: "Resolve reports carefully, archive unsafe content when needed, and keep the audit trail." },
-  "/admin/settlement": { emoji: "⚖️", label: "Check settlement details", text: "Review delivery and settlement information before resolving campaign funds." },
-  "/settings": { emoji: "⚙️", label: "Keep your account ready", text: "Update your profile, security, and notification settings so CLOUT works smoothly." },
+  "/brand/dashboard": { label: "Start here", text: "Review campaign activity, then prepare your next approved creative.", actionLabel: "Open Ad Toolkit", href: "/brand/toolkit" },
+  "/brand/toolkit": { label: "Create your brief", text: "Choose a template, add media and a clear brief, then send it for admin review.", actionLabel: "View Ads Library", href: "/brand/ads" },
+  "/brand/ads": { label: "Turn creative into a campaign", text: "When a video is ready and approved, use it to create a campaign for matched creators.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
+  "/brand/campaigns": { label: "Track your results", text: "Monitor funding, delivery progress, and creator performance from one place.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
+  "/brand/campaigns/new": { label: "Set the campaign goal", text: "Choose approved media, audience, budget, and campaign slots for the right creators." },
+  "/influencer/dashboard": { label: "Find your next opportunity", text: "Check matches, earnings, and the next action that grows your creator work.", actionLabel: "Explore marketplace", href: "/influencer/marketplace" },
+  "/influencer/marketplace": { label: "Choose a brand opportunity", text: "Watch approved media, download assets you can use, and claim the right campaign.", actionLabel: "View my slots", href: "/influencer/slots" },
+  "/influencer/slots": { label: "Publish your campaign ad", text: "Upload a final video under 30 seconds, publish it to CLOUT, then share it to your connected accounts." },
+  "/influencer/earnings": { label: "Review earnings", text: "Check verified earnings and request a payout once campaign work is delivered." },
+  "/social": { label: "Join the conversation", text: "Post playable media, react to creators, and build your public CLOUT audience.", actionLabel: "Discover creators", href: "/social/discover" },
+  "/social/discover": { label: "Find your people", text: "Search creators, hashtags, and trending conversations that match your niche." },
+  "/social-accounts": { label: "Connect your accounts", text: "Connect accounts you own before sending campaign content to external followers." },
+  "/messages": { label: "Keep collaboration clear", text: "Use messages to agree on campaign details and clarify a brief in one secure place." },
+  "/admin/dashboard": { label: "Keep CLOUT healthy", text: "Review platform activity, then work through approvals, moderation, settlements, and audits.", actionLabel: "Review media", href: "/admin/media-review" },
+  "/admin/media-review": { label: "Review before distribution", text: "Approve only safe, suitable brand media before eligible influencers can use it." },
+  "/admin/social-moderation": { label: "Protect the community", text: "Resolve reports carefully, archive unsafe content when needed, and keep the audit trail." },
+  "/admin/settlement": { label: "Check settlement details", text: "Review delivery and settlement information before resolving campaign funds." },
+  "/settings": { label: "Keep your account ready", text: "Update your profile, security, and notification settings so CLOUT works smoothly." },
 };
 
 function pageGuide(pathname: string | null, title: string): PageGuide {
-  const fallback = { emoji: "🚀", label: "Your next step", text: `Use ${title} to complete your next CLOUT task.` };
+  const fallback = { label: "Your next step", text: `Use ${title} to complete your next CLOUT task.` };
   if (!pathname) return fallback;
   if (PAGE_GUIDES[pathname]) return PAGE_GUIDES[pathname];
   const closestPath = Object.keys(PAGE_GUIDES)
     .filter((key) => pathname.startsWith(`${key}/`))
     .sort((a, b) => b.length - a.length)[0];
   return closestPath ? PAGE_GUIDES[closestPath] : fallback;
+}
+
+function AnimatedClickCue() {
+  return (
+    <span aria-hidden="true" className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <span className="absolute size-7 rounded-full border border-primary/40 animate-ping" />
+      <MousePointerClick className="relative z-10 size-5 animate-[bounce_2s_ease-in-out_infinite]" />
+    </span>
+  );
 }
 
 function initials(email: string) {
@@ -392,6 +401,16 @@ export function DashboardShell({
   const canMessage = user?.user_type === "brand" || user?.user_type === "influencer";
   const guide = pageGuide(pathname, title);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [showGuideTip, setShowGuideTip] = useState(false);
+
+  useEffect(() => {
+    if (!user || !pathname) return;
+    const key = `clout-guide-seen:${user.id}:${pathname}`;
+    if (!window.sessionStorage.getItem(key)) {
+      window.sessionStorage.setItem(key, "true");
+      setShowGuideTip(true);
+    }
+  }, [pathname, user?.id]);
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", "unread-badge"],
@@ -492,6 +511,12 @@ export function DashboardShell({
             </DropdownMenu>
           </div>
         </header>
+        {showGuideTip && user && (
+          <aside role="status" className="fixed right-4 bottom-4 z-30 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-primary/25 bg-card p-4 shadow-xl backdrop-blur-md sm:right-6 sm:bottom-6">
+            <button type="button" aria-label="Close guide" className="absolute top-2 right-2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => setShowGuideTip(false)}><X className="size-4" /></button>
+            <div className="flex gap-3 pr-5"><AnimatedClickCue /><div><p className="text-sm font-semibold">{guide.label}</p><p className="mt-1 text-sm leading-5 text-muted-foreground">{guide.text}</p>{guide.href && guide.actionLabel && <Button size="sm" className="mt-3" onClick={() => setShowGuideTip(false)} render={<Link href={guide.href} />}>{guide.actionLabel}</Button>}</div></div>
+          </aside>
+        )}
         <main className="relative z-10 flex-1 px-4 py-6 sm:px-6">
           <div className="mb-4">
             <BackButton fallbackHref={user ? `/${user.user_type}/dashboard` : "/"} className="-ml-2" />
@@ -503,7 +528,7 @@ export function DashboardShell({
               <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             </div>
             <section aria-label="Page guide" className="flex max-w-2xl items-center gap-3 rounded-2xl border border-primary/20 bg-card/90 p-3 shadow-sm backdrop-blur-md">
-              <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl">{guide.emoji}</span>
+              <AnimatedClickCue />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-primary">{guide.label}</p>
                 <p className="mt-0.5 text-sm leading-5 text-muted-foreground">{guide.text}</p>
