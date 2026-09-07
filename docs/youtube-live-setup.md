@@ -45,7 +45,7 @@ an owner attempts a live delivery.
 
 ## Safety checks
 
-- Test with an unlisted/private test channel first.
+- Test with an isolated test channel first. The current connector publishes videos as public, so do not use your primary public channel until you have verified the workflow.
 - Confirm the connected channel belongs to the person pressing Share.
 - CLOUT only publishes after an explicit user action; it does not schedule or
   background-post YouTube videos.
