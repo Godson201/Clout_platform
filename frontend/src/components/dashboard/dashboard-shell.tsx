@@ -104,34 +104,43 @@ const DASHBOARD_LABEL: Record<UserType, string> = {
   admin: "Admin Dashboard",
 };
 
-const PAGE_GUIDES: Record<string, string> = {
-  "/brand/dashboard": "Start by reviewing your campaign activity, then open the Toolkit to prepare the next approved creative.",
-  "/brand/toolkit": "Choose a template, add your media and brief, then send the finished creative for admin review.",
-  "/brand/ads": "Keep approved media organised here. When a video is ready, turn the advertisement into a campaign.",
-  "/brand/campaigns": "Monitor live campaigns, funding, delivery progress, and creator performance from one place.",
-  "/brand/campaigns/new": "Choose an approved ready advertisement, set your audience and budget, then create campaign slots for matching creators.",
-  "/influencer/dashboard": "Check your matched opportunities, creator earnings, and the next action needed to grow your campaign work.",
-  "/influencer/marketplace": "Watch approved brand media, download the assets you are eligible to use, then claim a campaign to create your version.",
-  "/influencer/slots": "Open a claimed slot to upload a final video under 30 seconds, publish it to CLOUT, and share it to selected accounts.",
-  "/influencer/earnings": "Review verified earnings and request payouts once your campaign work has been delivered.",
-  "/social": "Post a playable photo or video, engage with the community, and use your public feed to build an audience.",
-  "/social/discover": "Search for people, hashtags, and trending conversations that match your niche and audience.",
-  "/social-accounts": "Connect accounts you own before sending a published campaign creative to external followers.",
-  "/messages": "Use messages to agree on campaign details, clarify a brief, and keep collaboration in one secure place.",
-  "/admin/dashboard": "Review the platform health first, then move through approvals, moderation, settlements, and audit activity.",
-  "/admin/media-review": "Review every uploaded brand asset before it reaches eligible influencers in the Ads Library.",
-  "/admin/social-moderation": "Resolve reported posts carefully, archive unsafe content when needed, and preserve an audit trail.",
-  "/admin/settlement": "Review delivery and settlement information before releasing or resolving campaign funds.",
-  "/settings": "Keep your profile, security, and notification settings current so your CLOUT account stays ready to work.",
+interface PageGuide {
+  emoji: string;
+  label: string;
+  text: string;
+  actionLabel?: string;
+  href?: string;
+}
+
+const PAGE_GUIDES: Record<string, PageGuide> = {
+  "/brand/dashboard": { emoji: "📊", label: "Start here", text: "Review campaign activity, then prepare your next approved creative.", actionLabel: "Open Ad Toolkit", href: "/brand/toolkit" },
+  "/brand/toolkit": { emoji: "🎬", label: "Create your brief", text: "Choose a template, add media and a clear brief, then send it for admin review.", actionLabel: "View Ads Library", href: "/brand/ads" },
+  "/brand/ads": { emoji: "🗂️", label: "Turn creative into a campaign", text: "When a video is ready and approved, use it to create a campaign for matched creators.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
+  "/brand/campaigns": { emoji: "📈", label: "Track your results", text: "Monitor funding, delivery progress, and creator performance from one place.", actionLabel: "Create campaign", href: "/brand/campaigns/new" },
+  "/brand/campaigns/new": { emoji: "🎯", label: "Set the campaign goal", text: "Choose approved media, audience, budget, and campaign slots for the right creators." },
+  "/influencer/dashboard": { emoji: "✨", label: "Find your next opportunity", text: "Check matches, earnings, and the next action that grows your creator work.", actionLabel: "Explore marketplace", href: "/influencer/marketplace" },
+  "/influencer/marketplace": { emoji: "🛍️", label: "Choose a brand opportunity", text: "Watch approved media, download assets you can use, and claim the right campaign.", actionLabel: "View my slots", href: "/influencer/slots" },
+  "/influencer/slots": { emoji: "🎥", label: "Publish your campaign ad", text: "Upload a final video under 30 seconds, publish it to CLOUT, then share it to your connected accounts." },
+  "/influencer/earnings": { emoji: "💰", label: "Review earnings", text: "Check verified earnings and request a payout once campaign work is delivered." },
+  "/social": { emoji: "💬", label: "Join the conversation", text: "Post playable media, react to creators, and build your public CLOUT audience.", actionLabel: "Discover creators", href: "/social/discover" },
+  "/social/discover": { emoji: "🔎", label: "Find your people", text: "Search creators, hashtags, and trending conversations that match your niche." },
+  "/social-accounts": { emoji: "🔗", label: "Connect your accounts", text: "Connect accounts you own before sending campaign content to external followers." },
+  "/messages": { emoji: "✉️", label: "Keep collaboration clear", text: "Use messages to agree on campaign details and clarify a brief in one secure place." },
+  "/admin/dashboard": { emoji: "🛡️", label: "Keep CLOUT healthy", text: "Review platform activity, then work through approvals, moderation, settlements, and audits.", actionLabel: "Review media", href: "/admin/media-review" },
+  "/admin/media-review": { emoji: "✅", label: "Review before distribution", text: "Approve only safe, suitable brand media before eligible influencers can use it." },
+  "/admin/social-moderation": { emoji: "🚩", label: "Protect the community", text: "Resolve reports carefully, archive unsafe content when needed, and keep the audit trail." },
+  "/admin/settlement": { emoji: "⚖️", label: "Check settlement details", text: "Review delivery and settlement information before resolving campaign funds." },
+  "/settings": { emoji: "⚙️", label: "Keep your account ready", text: "Update your profile, security, and notification settings so CLOUT works smoothly." },
 };
 
-function pageGuide(pathname: string | null, title: string): string {
-  if (!pathname) return `Use ${title} to complete your next CLOUT task.`;
+function pageGuide(pathname: string | null, title: string): PageGuide {
+  const fallback = { emoji: "🚀", label: "Your next step", text: `Use ${title} to complete your next CLOUT task.` };
+  if (!pathname) return fallback;
   if (PAGE_GUIDES[pathname]) return PAGE_GUIDES[pathname];
   const closestPath = Object.keys(PAGE_GUIDES)
     .filter((key) => pathname.startsWith(`${key}/`))
     .sort((a, b) => b.length - a.length)[0];
-  return closestPath ? PAGE_GUIDES[closestPath] : `Use ${title} to complete your next CLOUT task.`;
+  return closestPath ? PAGE_GUIDES[closestPath] : fallback;
 }
 
 function initials(email: string) {
@@ -488,11 +497,23 @@ export function DashboardShell({
             <BackButton fallbackHref={user ? `/${user.user_type}/dashboard` : "/"} className="-ml-2" />
           </div>
           {user && !user.is_verified && <UnverifiedEmailBanner />}
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <h1 className="text-2xl font-semibold">{title}</h1>
-            <div className="max-w-xl rounded-2xl border border-primary/15 bg-card/80 px-4 py-2.5 text-sm text-muted-foreground shadow-sm backdrop-blur-md">
-              <span className="mr-2 font-medium text-primary">Next step:</span>{guide}
+          <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <p className="mb-1 text-xs font-semibold tracking-[0.16em] text-primary uppercase">CLOUT workspace</p>
+              <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             </div>
+            <section aria-label="Page guide" className="flex max-w-2xl items-center gap-3 rounded-2xl border border-primary/20 bg-card/90 p-3 shadow-sm backdrop-blur-md">
+              <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl">{guide.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-primary">{guide.label}</p>
+                <p className="mt-0.5 text-sm leading-5 text-muted-foreground">{guide.text}</p>
+              </div>
+              {guide.href && guide.actionLabel && (
+                <Button size="sm" className="hidden shrink-0 sm:inline-flex" render={<Link href={guide.href} />}>
+                  {guide.actionLabel}
+                </Button>
+              )}
+            </section>
           </div>
           <div className="animate-fade-in">{children}</div>
         </main>
