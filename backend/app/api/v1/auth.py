@@ -1,5 +1,6 @@
 import secrets
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
@@ -39,14 +40,19 @@ REFRESH_COOKIE_PATH = "/api/v1/auth"
 
 
 def _is_cross_site_deployment() -> bool:
-    # The frontend (Vercel) and this API (Render) are different registrable
-    # domains in production, which makes every refresh call a cross-site
-    # fetch — SameSite=Lax cookies are withheld from those entirely (Lax only
-    # exempts top-level navigations), so refresh silently 401s. None is the
-    # correct attribute for a cross-site cookie, but it requires Secure, and
-    # local dev's frontend/backend share "localhost" (same-site, different
-    # port) where Lax already works and non-HTTPS None cookies are rejected
-    # outright — hence the environment split rather than hardcoding one.
+    # The frontend (Vercel) and API (Render) are commonly separate origins.
+    # A refresh call between them is cross-site, so SameSite=Lax prevents the
+    # browser from sending the cookie after an OAuth redirect.  This must be
+    # derived from the actual public URLs rather than ENVIRONMENT: our hosted
+    # demo intentionally uses ENVIRONMENT=development while still serving a
+    # Vercel frontend and Render API.
+    frontend = urlsplit(settings.FRONTEND_BASE_URL)
+    backend = urlsplit(settings.PUBLIC_BASE_URL)
+    if frontend.hostname and backend.hostname:
+        return frontend.hostname != backend.hostname
+
+    # Retain a safe fallback for incomplete deployments. Local development
+    # uses localhost for both values and therefore stays Lax/non-Secure.
     return settings.ENVIRONMENT == "production"
 
 

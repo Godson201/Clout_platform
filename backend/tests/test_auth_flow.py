@@ -1,3 +1,8 @@
+from types import SimpleNamespace
+
+from app.api.v1 import auth as auth_api
+
+
 async def _register_brand(client, email="brand@example.com"):
     resp = await client.post(
         "/api/v1/auth/register/brand",
@@ -10,6 +15,41 @@ async def _register_brand(client, email="brand@example.com"):
         },
     )
     return resp
+
+
+class TestRefreshCookieDeployment:
+    def test_uses_cross_site_cookie_for_distinct_public_frontend_and_api(self, monkeypatch):
+        """Hosted staging may be labelled development but still spans Vercel/Render."""
+        monkeypatch.setattr(
+            auth_api,
+            "settings",
+            SimpleNamespace(
+                ENVIRONMENT="development",
+                FRONTEND_BASE_URL="https://clout-platform-two.vercel.app",
+                PUBLIC_BASE_URL="https://clout-platform-backend.onrender.com",
+            ),
+        )
+
+        assert auth_api._refresh_cookie_kwargs() == {
+            "httponly": True,
+            "secure": True,
+            "samesite": "none",
+            "path": "/api/v1/auth",
+        }
+
+    def test_uses_local_cookie_for_localhost(self, monkeypatch):
+        monkeypatch.setattr(
+            auth_api,
+            "settings",
+            SimpleNamespace(
+                ENVIRONMENT="development",
+                FRONTEND_BASE_URL="http://localhost:3002",
+                PUBLIC_BASE_URL="http://localhost:8000",
+            ),
+        )
+
+        assert auth_api._refresh_cookie_kwargs()["samesite"] == "lax"
+        assert auth_api._refresh_cookie_kwargs()["secure"] is False
 
 
 async def _register_influencer(client, email="influencer@example.com", username="thecreator"):
