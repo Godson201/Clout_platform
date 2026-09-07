@@ -1,6 +1,8 @@
 from urllib.parse import parse_qs, urlparse
+from types import SimpleNamespace
 
-from app.core.platform_capabilities import PlatformCapabilities
+from app.core.platform_capabilities import PlatformCapabilities, get_capabilities
+from app.models.enums import SocialPlatform
 from tests.factories import fund_and_confirm_campaign, register_brand_with_ready_ad, register_influencer_token
 from tests.test_campaigns import _create_draft_campaign
 
@@ -38,6 +40,22 @@ async def _claimed_slot(client, tiny_video_bytes, *, brand_email: str, inf_email
 
 
 class TestSocialAccountConnection:
+    def test_youtube_live_capability_requires_explicit_opt_in(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.core.platform_capabilities.get_settings",
+            lambda: SimpleNamespace(
+                SOCIAL_OAUTH_MODE="live",
+                YOUTUBE_LIVE_ENABLED=True,
+                GOOGLE_CLIENT_ID="client-id",
+                GOOGLE_CLIENT_SECRET="client-secret",
+            ),
+        )
+        capability = get_capabilities(SocialPlatform.YOUTUBE)
+        assert capability.can_auto_publish is True
+        assert capability.can_fetch_metrics is True
+        assert capability.can_fetch_comments is True
+        assert capability.can_schedule is False
+
     async def test_lists_effective_platform_capabilities(self, client, tiny_video_bytes):
         token = await register_influencer_token(client, email="capability-inf@example.com", username="capabilityinf")
         response = await client.get("/api/v1/social-accounts/capabilities", headers={"Authorization": f"Bearer {token}"})

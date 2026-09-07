@@ -67,6 +67,8 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: YOUTUBE_LIVE_ENABLED
+        value: "false"
       - key: EMAIL_MODE
         value: smtp
       - key: SMTP_HOST

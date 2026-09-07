@@ -57,4 +57,19 @@ def get_capabilities(platform: SocialPlatform) -> PlatformCapabilities:
     settings = get_settings()
     if settings.SOCIAL_OAUTH_MODE == "mock":
         return _MOCK_CAPABILITIES
+    if (
+        platform == SocialPlatform.YOUTUBE
+        and settings.YOUTUBE_LIVE_ENABLED
+        and settings.GOOGLE_CLIENT_ID
+        and settings.GOOGLE_CLIENT_SECRET
+    ):
+        # YouTube is the first live publishing integration. Scheduling is
+        # deliberately false: CLOUT publishes only after the owner clicks
+        # share, while the Data API gives us metrics and comment read access.
+        return PlatformCapabilities(
+            can_auto_publish=True,
+            can_schedule=False,
+            can_fetch_metrics=True,
+            can_fetch_comments=True,
+        )
     return PLATFORM_CAPABILITIES[platform]

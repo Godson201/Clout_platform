@@ -154,6 +154,11 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None
+    # Kept separate from GOOGLE_CLIENT_* so sharing Google sign-in credentials
+    # never silently enables a channel upload integration. An operator must
+    # explicitly opt in only after the YouTube Data API and consent screen are
+    # configured for the required scopes.
+    YOUTUBE_LIVE_ENABLED: bool = False
 
     # "template" (default) fills a fixed narrative template with numbers pulled
     # straight from CampaignAnalytics — always available, never fabricates
