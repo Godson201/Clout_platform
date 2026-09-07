@@ -26,6 +26,7 @@ class TestPerPlatformAdapterSelection:
         monkeypatch.setattr(settings, "SOCIAL_OAUTH_MODE", "live")
         monkeypatch.setattr(settings, "INSTAGRAM_APP_ID", "test-ig-app-id")
         monkeypatch.setattr(settings, "INSTAGRAM_APP_SECRET", "test-ig-secret")
+        monkeypatch.setattr(settings, "INSTAGRAM_LIVE_ENABLED", True)
 
         adapter = get_adapter(SocialPlatform.INSTAGRAM)
         assert isinstance(adapter, InstagramLoginAdapter)
@@ -39,11 +40,22 @@ class TestPerPlatformAdapterSelection:
         adapter = get_adapter(SocialPlatform.INSTAGRAM)
         assert isinstance(adapter, MockSocialAdapter)
 
+    def test_credentials_without_explicit_live_flag_remain_mock(self, monkeypatch):
+        settings = get_settings()
+        monkeypatch.setattr(settings, "SOCIAL_OAUTH_MODE", "live")
+        monkeypatch.setattr(settings, "META_APP_ID", "test-fb-app-id")
+        monkeypatch.setattr(settings, "META_APP_SECRET", "test-fb-secret")
+        monkeypatch.setattr(settings, "FACEBOOK_LIVE_ENABLED", False)
+
+        adapter = get_adapter(SocialPlatform.FACEBOOK)
+        assert isinstance(adapter, MockSocialAdapter)
+
     def test_facebook_uses_separate_meta_credentials_from_instagram(self, monkeypatch):
         settings = get_settings()
         monkeypatch.setattr(settings, "SOCIAL_OAUTH_MODE", "live")
         monkeypatch.setattr(settings, "META_APP_ID", "test-fb-app-id")
         monkeypatch.setattr(settings, "META_APP_SECRET", "test-fb-secret")
+        monkeypatch.setattr(settings, "FACEBOOK_LIVE_ENABLED", True)
         monkeypatch.setattr(settings, "INSTAGRAM_APP_ID", None)
         monkeypatch.setattr(settings, "INSTAGRAM_APP_SECRET", None)
 
@@ -58,6 +70,7 @@ class TestPerPlatformAdapterSelection:
         monkeypatch.setattr(settings, "SOCIAL_OAUTH_MODE", "live")
         monkeypatch.setattr(settings, "INSTAGRAM_APP_ID", "test-ig-app-id")
         monkeypatch.setattr(settings, "INSTAGRAM_APP_SECRET", "test-ig-secret")
+        monkeypatch.setattr(settings, "INSTAGRAM_LIVE_ENABLED", True)
         monkeypatch.setattr(settings, "TIKTOK_CLIENT_KEY", None)
         monkeypatch.setattr(settings, "TIKTOK_CLIENT_SECRET", None)
 

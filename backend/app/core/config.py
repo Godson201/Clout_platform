@@ -143,6 +143,9 @@ class Settings(BaseSettings):
 
     META_APP_ID: str | None = None
     META_APP_SECRET: str | None = None
+    # Credentials may be stored while Meta App Review is in progress. An
+    # explicit switch keeps each real provider integration opt-in.
+    FACEBOOK_LIVE_ENABLED: bool = False
 
     # Separate from META_APP_ID/SECRET on purpose: "Instagram API with
     # Instagram Login" is a distinct Meta product from classic Facebook
@@ -151,6 +154,7 @@ class Settings(BaseSettings):
     # difference on the same app.
     INSTAGRAM_APP_ID: str | None = None
     INSTAGRAM_APP_SECRET: str | None = None
+    INSTAGRAM_LIVE_ENABLED: bool = False
 
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None

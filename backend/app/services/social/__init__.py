@@ -30,9 +30,11 @@ def _platform_is_configured(platform: SocialPlatform, settings) -> bool:
     so this never silently pretends to be a real connection.
     """
     if platform == SocialPlatform.INSTAGRAM:
-        return bool(settings.INSTAGRAM_APP_ID and settings.INSTAGRAM_APP_SECRET)
+        return bool(
+            settings.INSTAGRAM_LIVE_ENABLED and settings.INSTAGRAM_APP_ID and settings.INSTAGRAM_APP_SECRET
+        )
     if platform == SocialPlatform.FACEBOOK:
-        return bool(settings.META_APP_ID and settings.META_APP_SECRET)
+        return bool(settings.FACEBOOK_LIVE_ENABLED and settings.META_APP_ID and settings.META_APP_SECRET)
     if platform == SocialPlatform.TIKTOK:
         return bool(settings.TIKTOK_CLIENT_KEY and settings.TIKTOK_CLIENT_SECRET)
     if platform == SocialPlatform.YOUTUBE:

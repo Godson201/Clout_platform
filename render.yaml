@@ -59,10 +59,14 @@ services:
         sync: false
       - key: META_APP_SECRET
         sync: false
+      - key: FACEBOOK_LIVE_ENABLED
+        value: "false"
       - key: INSTAGRAM_APP_ID
         sync: false
       - key: INSTAGRAM_APP_SECRET
         sync: false
+      - key: INSTAGRAM_LIVE_ENABLED
+        value: "false"
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

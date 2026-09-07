@@ -56,6 +56,27 @@ class TestSocialAccountConnection:
         assert capability.can_fetch_comments is True
         assert capability.can_schedule is False
 
+    def test_meta_live_capabilities_require_their_own_explicit_opt_in(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.core.platform_capabilities.get_settings",
+            lambda: SimpleNamespace(
+                SOCIAL_OAUTH_MODE="live",
+                FACEBOOK_LIVE_ENABLED=True,
+                META_APP_ID="facebook-app-id",
+                META_APP_SECRET="facebook-app-secret",
+                INSTAGRAM_LIVE_ENABLED=True,
+                INSTAGRAM_APP_ID="instagram-app-id",
+                INSTAGRAM_APP_SECRET="instagram-app-secret",
+            ),
+        )
+
+        for platform in (SocialPlatform.FACEBOOK, SocialPlatform.INSTAGRAM):
+            capability = get_capabilities(platform)
+            assert capability.can_auto_publish is True
+            assert capability.can_fetch_metrics is True
+            assert capability.can_fetch_comments is True
+            assert capability.can_schedule is False
+
     async def test_lists_effective_platform_capabilities(self, client, tiny_video_bytes):
         token = await register_influencer_token(client, email="capability-inf@example.com", username="capabilityinf")
         response = await client.get("/api/v1/social-accounts/capabilities", headers={"Authorization": f"Bearer {token}"})

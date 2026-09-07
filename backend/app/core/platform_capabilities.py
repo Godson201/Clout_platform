@@ -72,4 +72,28 @@ def get_capabilities(platform: SocialPlatform) -> PlatformCapabilities:
             can_fetch_metrics=True,
             can_fetch_comments=True,
         )
+    if (
+        platform == SocialPlatform.FACEBOOK
+        and settings.FACEBOOK_LIVE_ENABLED
+        and settings.META_APP_ID
+        and settings.META_APP_SECRET
+    ):
+        return PlatformCapabilities(
+            can_auto_publish=True,
+            can_schedule=False,
+            can_fetch_metrics=True,
+            can_fetch_comments=True,
+        )
+    if (
+        platform == SocialPlatform.INSTAGRAM
+        and settings.INSTAGRAM_LIVE_ENABLED
+        and settings.INSTAGRAM_APP_ID
+        and settings.INSTAGRAM_APP_SECRET
+    ):
+        return PlatformCapabilities(
+            can_auto_publish=True,
+            can_schedule=False,
+            can_fetch_metrics=True,
+            can_fetch_comments=True,
+        )
     return PLATFORM_CAPABILITIES[platform]
